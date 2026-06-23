@@ -355,6 +355,48 @@ new payment/monetization path.
 
 ---
 
+## 10. Publishing to MiniPay (submission + listing)
+
+MiniPay has its own dev docs + submission portal (separate from the Celo docs):
+**docs <https://docs.minipay.xyz>** · **submit form <https://developer.minipay.to/mini-app-listing>**.
+There is **no `.well-known` manifest** — you submit a public HTTPS URL via the form, MiniPay reviews + tests it,
+sends feedback, and on approval lists it in the in-wallet **Discover** page.
+
+### Listing fields the form asks for
+App name · tagline (1–2 sentences) · publisher · **support URL** (Telegram/WhatsApp/email/web) ·
+**Terms of Service** link · **Privacy Policy** link · **category** (use `productivity` or `finance`) ·
+**App URL** (public HTTPS, must be reachable) · **icon 512×512**.
+
+### Pre-submission technical checklist (must pass, else rejected)
+- **Auto-connects** to the wallet — no manual connect button ✅ (`AutoConnect`)
+- **HTTPS** only · **mobile-optimized** (≥360×640 viewport) ✅
+- **Works on Celo** (mainnet and/or Sepolia) ✅
+- Graceful **error handling** on wallet ops
+- **PageSpeed Insights** score required for the production URL
+- **Network manifest** — document every URL/subdomain/origin/external JS·CSS·API the app calls
+  (ours: api.perkos.xyz, the Firebase/Firestore + Google identity origins, Forno RPC, celo token contracts)
+- Own **name/logo** — must not look MiniPay-operated ✅ ("PerkOS")
+- **Support SLA:** fix reported critical issues within **24h** or the listing is temporarily disabled
+
+### Dependency-security rules (MiniPay hardening — do before submitting)
+- **Pin EXACT npm versions** (no `^`/`~` ranges) — we currently pin only `wagmi`; pin the rest
+- Enforce a **7-day minimum dependency age** (`.npmrc` `minimumReleaseAge`) + `ignore-scripts=true`
+- Commit the lockfile, build with `npm ci`
+
+### Smart contracts
+If the app calls any custom contract it must be **verified on Celoscan** with sample tx links. Our payments are
+plain ERC20 `transfer`s (no custom contract); the claim vault is already verified — so likely **N/A for v1**.
+
+### Our gap-list before we can submit
+1. **Deploy to a public HTTPS host** (e.g. `minipay.perkos.xyz`, Caddy → Next standalone, same VPS pattern).
+2. Add **Terms of Service + Privacy Policy** pages and a **support link** in-app.
+3. Produce a **512×512 icon** + the listing copy (name/tagline/category).
+4. **Pin exact deps** + add `.npmrc` (release-age + ignore-scripts); rebuild with `npm ci`.
+5. Run **PageSpeed**; write the **network manifest**.
+6. Then submit the URL at the form and (separately) apply to **Proof-of-Ship / verda.ventures**.
+
+---
+
 ## Sources
 
 - MiniPay overview — <https://docs.celo.org/build/build-on-minipay/overview>
@@ -365,6 +407,8 @@ new payment/monetization path.
 - Fee abstraction — <https://docs.celo.org/build-on-celo/fee-abstraction/overview>
 - Proof-of-Ship grants — <https://www.celopg.eco/programs/proof-of-ship-s1>
 - $1M builder incentive (2026) — <https://press.opera.com/2026/04/22/minipay-builders-incentive-and-roadshow/>
+- MiniPay dev docs — <https://docs.minipay.xyz> · submit your Mini App — <https://docs.minipay.xyz/getting-started/submit-your-miniapp.html>
+- MiniPay listing form — <https://developer.minipay.to/mini-app-listing>
 - PerkOS code: `PerkOS/app/lib/{wagmi,tokenAddresses,walletAuth,receiptAnchor}.ts`,
   `PerkOS/app/components/{AutoConnect,NetworkPill}.tsx`, `PerkOS/app/lib/useIsInMiniApp.ts`,
   `PerkOS/app/api/auth/{nonce,wallet-signin}/route.ts`
