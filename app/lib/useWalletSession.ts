@@ -77,6 +77,7 @@ export function useWalletSession() {
   return {
     user,
     address: address?.toLowerCase(),
+    isConnected,
     status,
     error,
     logout,

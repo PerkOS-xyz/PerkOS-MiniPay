@@ -10,7 +10,9 @@ const celoRpc = process.env.NEXT_PUBLIC_CELO_RPC_URL || "https://forno.celo.org"
 
 export const wagmiConfig = createConfig({
   chains: [celo, celoSepolia],
-  connectors: [injected({ target: "metaMask" })],
+  // Per the MiniPay docs: plain `injected()` (no target). MiniPay's provider sets `isMiniPay`
+  // but NOT `isMetaMask`, so a `target: "metaMask"` connector never matches it.
+  connectors: [injected()],
   transports: {
     [celo.id]: http(celoRpc),
     [celoSepolia.id]: http(),
