@@ -4,11 +4,11 @@ import { useEffect } from "react";
 import { useAccount, useConnect } from "wagmi";
 
 /**
- * MiniPay connects implicitly. As soon as the injected provider is present we auto-connect,
- * and the app NEVER renders a "Connect Wallet" button (MiniPay rule C1).
+ * MiniPay connects implicitly (rule C1: no connect button). We poll for `window.ethereum`
+ * (the iOS WKWebView injects it slightly late) and auto-connect ONLY when it's MiniPay.
  *
- * The provider can be injected slightly after first paint (especially in the iOS WKWebView),
- * so we poll briefly for `window.ethereum` and call connect once it's there.
+ * In a regular browser we do nothing here — the connect button (shown outside MiniPay) handles it,
+ * so we don't pop an unexpected wallet prompt on page load.
  */
 export function AutoConnect() {
   const { isConnected } = useAccount();
@@ -24,13 +24,18 @@ export function AutoConnect() {
       if (stopped || isConnected || connectCalled) return;
       const eth =
         typeof window !== "undefined"
-          ? (window as unknown as { ethereum?: unknown }).ethereum
+          ? (window as unknown as { ethereum?: { isMiniPay?: boolean } }).ethereum
           : undefined;
-      const connector = connectors.find((c) => c.id === "injected") ?? connectors[0];
 
-      if (eth && connector) {
-        connectCalled = true;
-        connect({ connector });
+      if (eth) {
+        // Provider present. Auto-connect only inside MiniPay; browser uses the button.
+        if (eth.isMiniPay) {
+          const connector = connectors.find((c) => c.id === "injected") ?? connectors[0];
+          if (connector) {
+            connectCalled = true;
+            connect({ connector });
+          }
+        }
         return;
       }
       // provider not injected yet — keep polling (~9s max)
