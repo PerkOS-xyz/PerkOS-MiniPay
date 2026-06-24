@@ -1,0 +1,17 @@
+# Add this block to the Caddyfile in perkos-knowledge-proxy on the VPS, then reload Caddy.
+# DNS minipay.perkos.xyz → 62.238.28.49 must resolve first so Caddy can issue the TLS cert.
+
+minipay.perkos.xyz {
+  encode gzip zstd
+
+  reverse_proxy perkos-minipay:3000 {
+    header_up Host {host}
+    header_up X-Real-IP {remote}
+    header_up X-Forwarded-For {remote}
+  }
+
+  log {
+    output file /var/log/caddy/minipay.perkos.xyz.log
+    format console
+  }
+}

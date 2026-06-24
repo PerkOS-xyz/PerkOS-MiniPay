@@ -1,0 +1,44 @@
+# PerkOS-MiniPay — production compose for minipay.perkos.xyz on perkos-cloud-02 (62.238.28.49).
+# Caddy lives in perkos-knowledge-proxy and reverse_proxy's by container name over the shared network.
+# Despite the ".example" name this IS the production compose (same convention as the miniapp).
+#
+# Secrets (Firebase Admin) come from /opt/perkos-minipay/.env — never rsync'd, created on the box.
+
+services:
+  minipay:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+      args:
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://minipay.perkos.xyz}
+        NEXT_PUBLIC_CELO_RPC_URL: ${NEXT_PUBLIC_CELO_RPC_URL:-https://forno.celo.org}
+        NEXT_PUBLIC_PAYMENT_ADDRESS: ${NEXT_PUBLIC_PAYMENT_ADDRESS:-}
+        NEXT_PUBLIC_PERKOS_API_URL: ${NEXT_PUBLIC_PERKOS_API_URL:-https://api.perkos.xyz}
+        NEXT_PUBLIC_PERKOS_DEFAULT_IMAGE_TAG: ${NEXT_PUBLIC_PERKOS_DEFAULT_IMAGE_TAG:-}
+        NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY}
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID}
+        NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}
+        NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}
+        NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID}
+    container_name: perkos-minipay
+    restart: unless-stopped
+    networks:
+      - perkos-knowledge_default
+    environment:
+      # Server-only secrets read at runtime (auth routes mint Firebase custom tokens).
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL}
+      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY}
+      # MiniPay launches public — any wallet may sign in. Set false + use PERKOS_WHITELIST to gate.
+      PERKOS_PUBLIC_MODE: ${PERKOS_PUBLIC_MODE:-true}
+      PERKOS_WHITELIST: ${PERKOS_WHITELIST:-}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  perkos-knowledge_default:
+    external: true

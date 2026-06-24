@@ -1,0 +1,60 @@
+# syntax=docker/dockerfile:1.7
+# Multi-stage build for PerkOS-MiniPay (Next.js 15 standalone). No worker sidecars, no AWS SDK.
+#
+# Stage 1 (deps):  install full deps for the build
+# Stage 2 (build): `next build` → .next/standalone (NEXT_PUBLIC_* baked in here)
+# Stage 3 (run):   tiny runtime running server.js
+
+FROM node:22-alpine AS deps
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm ci --no-audit --no-fund --legacy-peer-deps
+
+FROM node:22-alpine AS build
+WORKDIR /app
+ENV NEXT_TELEMETRY_DISABLED=1
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+# Build-time NEXT_PUBLIC_* are inlined into the client bundle.
+ARG NEXT_PUBLIC_SITE_URL
+ARG NEXT_PUBLIC_CELO_RPC_URL
+ARG NEXT_PUBLIC_PAYMENT_ADDRESS
+ARG NEXT_PUBLIC_PERKOS_API_URL
+ARG NEXT_PUBLIC_PERKOS_DEFAULT_IMAGE_TAG
+ARG NEXT_PUBLIC_FIREBASE_API_KEY
+ARG NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+ARG NEXT_PUBLIC_FIREBASE_PROJECT_ID
+ARG NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+ARG NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+ARG NEXT_PUBLIC_FIREBASE_APP_ID
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
+    NEXT_PUBLIC_CELO_RPC_URL=$NEXT_PUBLIC_CELO_RPC_URL \
+    NEXT_PUBLIC_PAYMENT_ADDRESS=$NEXT_PUBLIC_PAYMENT_ADDRESS \
+    NEXT_PUBLIC_PERKOS_API_URL=$NEXT_PUBLIC_PERKOS_API_URL \
+    NEXT_PUBLIC_PERKOS_DEFAULT_IMAGE_TAG=$NEXT_PUBLIC_PERKOS_DEFAULT_IMAGE_TAG \
+    NEXT_PUBLIC_FIREBASE_API_KEY=$NEXT_PUBLIC_FIREBASE_API_KEY \
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=$NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN \
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID=$NEXT_PUBLIC_FIREBASE_PROJECT_ID \
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=$NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET \
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID \
+    NEXT_PUBLIC_FIREBASE_APP_ID=$NEXT_PUBLIC_FIREBASE_APP_ID
+RUN npm run build
+
+FROM node:22-alpine AS run
+WORKDIR /app
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+# `standalone` output bundles a self-contained server.js + node_modules slice.
+COPY --from=build /app/.next/standalone ./
+COPY --from=build /app/.next/static ./.next/static
+COPY --from=build /app/public ./public
+
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:3000/ >/dev/null || exit 1
+
+CMD ["node", "server.js"]
