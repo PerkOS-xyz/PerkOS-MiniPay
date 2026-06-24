@@ -1,7 +1,13 @@
 /* eslint-disable @next/next/no-img-element */
 
-/** The PerkOS wordmark. Used in the app header so the Mini App reads as PerkOS-branded
- *  (a MiniPay listing requirement: show your own name/logo, not MiniPay-operated). */
-export function Brand({ className = "h-7 w-auto" }: { className?: string }) {
-  return <img src="/perkos-header.png" alt="PerkOS" className={className} />;
+/** PerkOS brand lockup: the crisp square mark + the wordmark in the app font.
+ *  (The rough perkos-header.png wordmark didn't render well on dark.)
+ *  `className` styles the row container (e.g. "justify-center"). */
+export function Brand({ className = "" }: { className?: string }) {
+  return (
+    <div className={`flex items-center gap-2.5 ${className}`}>
+      <img src="/logo.png" alt="" className="h-8 w-8 rounded-lg" />
+      <span className="text-lg font-semibold tracking-tight">PerkOS</span>
+    </div>
+  );
 }
