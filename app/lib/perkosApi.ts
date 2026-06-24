@@ -6,6 +6,7 @@ import {
   limit,
   orderBy,
   query,
+  serverTimestamp,
   setDoc,
   updateDoc,
 } from "firebase/firestore";
@@ -210,5 +211,43 @@ export async function giveGoal(
   await authedJson(`/projects/${projectId}/pm-turn`, {
     method: "POST",
     body: JSON.stringify({ trigger: "run-button" }),
+  });
+}
+
+// ─── Per-agent chat ───────────────────────────────────────────────────────────
+
+export type ChatMessage = {
+  id: string;
+  from: "user" | "agent";
+  text: string;
+  agentName?: string;
+  createdAt?: string;
+};
+
+/** Write a user message into the project chat thread (agent replies land here too). */
+export async function addProjectMessage(
+  address: string,
+  projectId: string,
+  text: string,
+  mentions?: string[],
+): Promise<void> {
+  const ref = doc(collection(db(), "wallets", address, "projects", projectId, "messages"));
+  await setDoc(ref, {
+    from: "user",
+    text,
+    ...(mentions && mentions.length ? { mentions } : {}),
+    createdAt: serverTimestamp(),
+  });
+}
+
+/** Dispatch a message to a specific agent over A2A; it replies into the project chat. */
+export async function mentionAgent(
+  projectId: string,
+  agentName: string,
+  text: string,
+): Promise<void> {
+  await authedJson(`/projects/${projectId}/mention-agent`, {
+    method: "POST",
+    body: JSON.stringify({ agentName, text }),
   });
 }

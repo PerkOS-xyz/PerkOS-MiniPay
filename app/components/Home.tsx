@@ -18,6 +18,7 @@ import {
 import { renderSoulMd, STARTER_TEAM } from "../lib/souls";
 import { WalletPanel } from "./WalletPanel";
 import { Brand } from "./Brand";
+import { AgentChat } from "./AgentChat";
 
 const IMAGE_TAG = process.env.NEXT_PUBLIC_PERKOS_DEFAULT_IMAGE_TAG || undefined;
 
@@ -29,6 +30,7 @@ export function Home({ address }: { address: string }) {
   const [launching, setLaunching] = useState<string | null>(null);
   const [goal, setGoal] = useState("");
   const [goalBusy, setGoalBusy] = useState(false);
+  const [chatAgent, setChatAgent] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -102,6 +104,19 @@ export function Home({ address }: { address: string }) {
     );
   }
 
+  if (chatAgent && data.project) {
+    const member = STARTER_TEAM.find((r) => r.role === chatAgent);
+    return (
+      <AgentChat
+        address={address}
+        projectId={data.project.id}
+        agentName={chatAgent}
+        glyph={member?.glyph ?? "✦"}
+        onBack={() => setChatAgent(null)}
+      />
+    );
+  }
+
   const hasTeam = Boolean(data.project && (data.project.agentIds?.length ?? 0) > 0);
   const session = data.project?.pmSession;
 
@@ -136,7 +151,9 @@ export function Home({ address }: { address: string }) {
       ) : (
         <>
           <section className="flex flex-col gap-3">
-            <h2 className="text-sm font-medium text-[var(--muted)]">Your team</h2>
+            <h2 className="text-sm font-medium text-[var(--muted)]">
+              Your team <span className="font-normal opacity-70">· tap to chat</span>
+            </h2>
             {(data.project?.agentIds ?? []).map((name) => {
               const agent = data.agents.find((a) => a.name === name);
               const member = STARTER_TEAM.find((r) => r.role === name);
@@ -147,6 +164,7 @@ export function Home({ address }: { address: string }) {
                   name={name}
                   blurb={member?.blurb ?? ""}
                   status={agent ? agentStatus(agent) : "provisioning"}
+                  onClick={() => setChatAgent(name)}
                 />
               );
             })}
@@ -197,32 +215,48 @@ function TeamMember({
   name,
   blurb,
   status,
+  onClick,
 }: {
   glyph: string;
   name: string;
   blurb: string;
   status: "online" | "provisioning" | "offline" | null;
+  onClick?: () => void;
 }) {
   const dot =
     status === "online" ? "#4ade80" : status === "provisioning" ? "#fbbf24" : status === "offline" ? "#9ca3af" : "transparent";
-  return (
-    <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+
+  const inner = (
+    <>
       <span
-        className="grid h-10 w-10 place-items-center rounded-full text-lg"
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-lg"
         style={{ background: "linear-gradient(135deg,#8b5cf6,#ec4899)" }}
         aria-hidden
       >
         {glyph}
       </span>
-      <div className="flex-1">
+      <div className="min-w-0 flex-1 text-left">
         <p className="font-medium">{name}</p>
         <p className="text-xs text-[var(--muted)]">{blurb}</p>
       </div>
       {status && (
-        <span className="h-2.5 w-2.5 rounded-full" style={{ background: dot }} aria-label={status} />
+        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: dot }} aria-label={status} />
       )}
-    </div>
+      {onClick && <span className="shrink-0 text-lg text-[var(--muted)]" aria-hidden>›</span>}
+    </>
   );
+
+  if (onClick) {
+    return (
+      <button
+        onClick={onClick}
+        className="flex w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-left active:scale-[0.99]"
+      >
+        {inner}
+      </button>
+    );
+  }
+  return <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">{inner}</div>;
 }
 
 function TaskRow({ task }: { task: Task }) {
