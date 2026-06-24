@@ -3,6 +3,7 @@
 import { useIsMiniPay } from "./lib/useIsMiniPay";
 import { useWalletSession, type WalletSessionStatus } from "./lib/useWalletSession";
 import { Home } from "./components/Home";
+import { Brand } from "./components/Brand";
 
 export default function Page() {
   const isMiniPay = useIsMiniPay();
@@ -14,6 +15,7 @@ export default function Page() {
 
   return (
     <main className="flex min-h-[100dvh] flex-col items-center justify-center gap-3 px-6 text-center">
+      <Brand className="mb-2 h-8 w-auto" />
       <h1 className="text-2xl font-semibold">Your AI team</h1>
       <p className="text-sm text-[var(--muted)]">
         A coworking of agents for your small business — on Celo, in MiniPay.

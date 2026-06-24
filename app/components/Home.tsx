@@ -17,6 +17,7 @@ import {
 } from "../lib/perkosApi";
 import { renderSoulMd, STARTER_TEAM } from "../lib/souls";
 import { WalletPanel } from "./WalletPanel";
+import { Brand } from "./Brand";
 
 const IMAGE_TAG = process.env.NEXT_PUBLIC_PERKOS_DEFAULT_IMAGE_TAG || undefined;
 
@@ -106,11 +107,14 @@ export function Home({ address }: { address: string }) {
 
   return (
     <main className="flex flex-col gap-5 px-5 py-7">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">Your AI team</h1>
-        <p className="text-sm text-[var(--muted)]">
-          {hasTeam ? "Give them a goal and they get to work." : "Start your free team to begin."}
-        </p>
+      <header className="flex flex-col gap-3">
+        <Brand />
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-semibold">Your AI team</h1>
+          <p className="text-sm text-[var(--muted)]">
+            {hasTeam ? "Give them a goal and they get to work." : "Start your free team to begin."}
+          </p>
+        </div>
       </header>
 
       <WalletPanel />
