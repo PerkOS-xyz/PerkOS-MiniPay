@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useContext, useEffect, useState } from "react";
-import { useAccount, useSignMessage } from "wagmi";
+import { useAccount, useDisconnect, useSignMessage } from "wagmi";
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { firebaseAuth } from "./firebase";
 import { signInWithWallet } from "./walletAuth";
@@ -32,6 +32,7 @@ let pendingSignIn: { address: string; promise: Promise<unknown> } | null = null;
 export function useWalletSession() {
   const { address: wagmiAddress, isConnected: wagmiConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
+  const { disconnectAsync } = useDisconnect();
   const dyn = useContext(DynamicWalletContext);
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<WalletSessionStatus>("loading");
@@ -112,16 +113,20 @@ export function useWalletSession() {
   }, [address, isConnected, useDynamic, dyn, signMessageAsync, retry]);
 
   const logout = useCallback(async () => {
-    // Dynamic owns the browser wallet — clearing only Firebase would bounce
-    // the user straight back in via the still-connected primaryWallet. The
-    // finally guarantees the Firebase session dies even if the wallet
-    // logout throws.
+    // Disconnect the WALLET first, then Firebase: with the wallet still
+    // connected, the sign-in effect would immediately mint a new nonce and
+    // pop a fresh signature prompt (bounce-back). Dynamic owns the wallet on
+    // the browser path; wagmi's injected connection covers the
+    // browser-without-Dynamic path. Inside MiniPay the button never renders
+    // (connection is implicit by design). The finally guarantees the Firebase
+    // session dies even if a wallet disconnect throws.
     try {
       if (dyn?.isConnected) await dyn.logout();
+      if (wagmiConnected) await disconnectAsync().catch(() => {});
     } finally {
       await signOut(firebaseAuth());
     }
-  }, [dyn]);
+  }, [dyn, wagmiConnected, disconnectAsync]);
 
   return {
     user,
