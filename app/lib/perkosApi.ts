@@ -46,6 +46,8 @@ export type Project = {
   agentIds?: string[];
   pmAgent?: string | null;
   pmSession?: PmSession;
+  /** Which app created it. MiniPay only ever shows surface === "minipay". */
+  surface?: string;
   createdAt?: string;
 };
 
@@ -102,7 +104,12 @@ export async function listAgents(address: string): Promise<Agent[]> {
 export async function listProjects(address: string, orgId?: string): Promise<Project[]> {
   const snap = await getDocs(collection(db(), "wallets", address, "projects"));
   const all = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Project, "id">) }));
-  return orgId ? all.filter((p) => p.orgId === orgId) : all;
+  // The backend is SHARED with the main PerkOS App, so an existing user's
+  // wallet already has main-app projects. MiniPay must only ever see its own —
+  // otherwise Home latches onto a main-app project and the recommended
+  // starter team never shows.
+  const mine = all.filter((p) => p.surface === "minipay");
+  return orgId ? mine.filter((p) => p.orgId === orgId) : mine;
 }
 
 export async function getProject(address: string, projectId: string): Promise<Project | null> {
@@ -127,6 +134,7 @@ export async function createProject(
     orgId: input.orgId,
     agentIds: [],
     pmAgent: null,
+    surface: "minipay",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   });

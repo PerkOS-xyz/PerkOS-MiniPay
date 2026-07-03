@@ -16,6 +16,8 @@ import {
   type Task,
 } from "../lib/perkosApi";
 import { renderSoulMd, STARTER_TEAM, starterRoleFor } from "../lib/souls";
+import { useIsMiniPay } from "../lib/useIsMiniPay";
+import { useWalletSession } from "../lib/useWalletSession";
 import { WalletPanel } from "./WalletPanel";
 import { Brand } from "./Brand";
 import { AgentChat } from "./AgentChat";
@@ -25,6 +27,10 @@ const IMAGE_TAG = process.env.NEXT_PUBLIC_PERKOS_DEFAULT_IMAGE_TAG || undefined;
 type Loaded = { orgId: string; agents: Agent[]; project: Project | null; tasks: Task[] };
 
 export function Home({ address }: { address: string }) {
+  // Logout is a browser-only affordance: inside MiniPay the wallet IS the
+  // host identity and connection is implicit (rule C1) — no logout there.
+  const isMiniPay = useIsMiniPay();
+  const { logout } = useWalletSession();
   const [data, setData] = useState<Loaded | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [launching, setLaunching] = useState<string | null>(null);
@@ -129,7 +135,17 @@ export function Home({ address }: { address: string }) {
   return (
     <main className="flex flex-col gap-5 px-5 py-7">
       <header className="flex flex-col gap-3">
-        <Brand />
+        <div className="flex items-center justify-between">
+          <Brand />
+          {!isMiniPay && (
+            <button
+              onClick={logout}
+              className="text-xs text-[var(--muted)] underline-offset-2 hover:underline"
+            >
+              Log out
+            </button>
+          )}
+        </div>
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold">Your AI team</h1>
           <p className="text-sm text-[var(--muted)]">
