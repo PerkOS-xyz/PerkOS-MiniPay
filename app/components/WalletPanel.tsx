@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAccount, useReadContract } from "wagmi";
+import { useReadContract } from "wagmi";
 import { celo } from "wagmi/chains";
 import { formatUnits } from "viem";
 import { CUSD } from "../lib/tokenAddresses";
@@ -20,8 +20,11 @@ const ERC20_BALANCE_ABI = [
 // Where pay-as-you-go cUSD goes. Configure to the platform/escrow address.
 const PAYMENT_ADDRESS = (process.env.NEXT_PUBLIC_PAYMENT_ADDRESS ?? "") as `0x${string}`;
 
-export function WalletPanel() {
-  const { address } = useAccount();
+export function WalletPanel({ address }: { address: string }) {
+  // Session address, not wagmi's — on the Dynamic browser path wagmi is
+  // disconnected (bridgeless) but the balance is a public read that only
+  // needs the address. Payments resolve their own wallet in usePayCusd.
+  const account = address as `0x${string}`;
   const { pay, ready } = usePayCusd();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -30,7 +33,7 @@ export function WalletPanel() {
     address: CUSD.address,
     abi: ERC20_BALANCE_ABI,
     functionName: "balanceOf",
-    args: address ? [address] : undefined,
+    args: [account],
     chainId: celo.id,
     query: { enabled: Boolean(address) },
   });

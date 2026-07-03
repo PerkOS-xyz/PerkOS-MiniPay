@@ -36,17 +36,19 @@ export function useMiniPayHost(): boolean | null {
   useEffect(() => {
     let stopped = false;
     let polls = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const tick = () => {
       if (stopped) return;
       const eth = (window as unknown as { ethereum?: { isMiniPay?: boolean } }).ethereum;
       if (eth?.isMiniPay) return setHost(true);
       if (eth || polls >= 4) return setHost(false);
       polls++;
-      setTimeout(tick, 300);
+      timer = setTimeout(tick, 300);
     };
     tick();
     return () => {
       stopped = true;
+      if (timer) clearTimeout(timer);
     };
   }, []);
   return host;

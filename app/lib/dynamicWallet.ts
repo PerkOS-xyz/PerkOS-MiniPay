@@ -20,6 +20,12 @@ export type DynamicWalletState = {
   isConnected: boolean;
   signMessage: (message: string) => Promise<string>;
   /**
+   * Viem wallet client for Dynamic's connected EVM wallet — used by the
+   * payment path (usePayCusd) since wagmi has no connection on this path.
+   * Throws when no wallet is connected.
+   */
+  getWalletClient: () => Promise<import("viem").WalletClient>;
+  /**
    * Log out of Dynamic (clears `primaryWallet`). Required for a real browser
    * logout: wagmi's `disconnect()` is a no-op here since Dynamic — not wagmi —
    * owns the wallet.
