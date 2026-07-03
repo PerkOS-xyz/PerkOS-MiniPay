@@ -138,7 +138,7 @@ export function Home({ address }: { address: string }) {
         </div>
       </header>
 
-      <WalletPanel />
+      <WalletPanel address={address} />
 
       {!hasTeam ? (
         <section className="flex flex-col gap-3">

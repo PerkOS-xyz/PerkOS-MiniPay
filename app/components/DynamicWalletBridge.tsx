@@ -2,6 +2,7 @@
 
 import { type ReactNode, useMemo } from "react";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
+import { isEthereumWallet } from "@dynamic-labs/ethereum";
 
 import {
   DynamicWalletContext,
@@ -40,6 +41,9 @@ export function DynamicWalletBridge({ children }: { children: ReactNode }) {
         signMessage: async () => {
           throw new Error("No Dynamic wallet connected.");
         },
+        getWalletClient: async () => {
+          throw new Error("No Dynamic wallet connected.");
+        },
         logout,
       };
     }
@@ -52,6 +56,12 @@ export function DynamicWalletBridge({ children }: { children: ReactNode }) {
           throw new Error("Dynamic wallet returned an empty signature.");
         }
         return signature;
+      },
+      getWalletClient: async () => {
+        if (!isEthereumWallet(primaryWallet)) {
+          throw new Error("Connected Dynamic wallet is not an EVM wallet.");
+        }
+        return primaryWallet.getWalletClient();
       },
       logout,
     };

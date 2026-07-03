@@ -15,8 +15,12 @@ export type WalletSessionStatus =
   | "not-allowlisted"
   | "error";
 
-// Module-level mutex: the hook renders from several places; only one sign-in flow at a time.
-let pendingSignIn: Promise<unknown> | null = null;
+// Module-level mutex, KEYED BY ADDRESS: the hook renders from several places,
+// so concurrent effect runs for the SAME wallet join one in-flight sign-in —
+// but an address switch mid-flight (Dynamic connects while wagmi was already
+// connected, or an account change) mints a fresh sign-in instead of joining
+// the stale one and reporting the wrong wallet as signed-in.
+let pendingSignIn: { address: string; promise: Promise<unknown> } | null = null;
 
 /**
  * Wallet session across the two hosts:
@@ -32,6 +36,10 @@ export function useWalletSession() {
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<WalletSessionStatus>("loading");
   const [error, setError] = useState<string | null>(null);
+  // Bumped when a completed sign-in doesn't match the current address (a
+  // concurrent flow won the Firebase session) — re-runs the effect for the
+  // wallet that is actually connected now.
+  const [retry, setRetry] = useState(0);
 
   const useDynamic = Boolean(dyn?.isConnected && dyn.address);
   const address = useDynamic ? dyn!.address : wagmiAddress;
@@ -41,15 +49,20 @@ export function useWalletSession() {
     return onAuthStateChanged(firebaseAuth(), (u) => {
       setUser(u);
       if (u) setStatus("signed-in");
-      else setStatus(isConnected ? "syncing" : "signed-out");
+      else setStatus("signed-out");
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
+    if (!isConnected || !address) {
+      // Wallet dropped (possibly mid-sign-in): reflect whatever Firebase says
+      // instead of leaving a permanent "syncing".
+      setStatus(firebaseAuth().currentUser ? "signed-in" : "signed-out");
+      return;
+    }
+    const addr = address.toLowerCase();
     const fbUser = firebaseAuth().currentUser;
-    if (!isConnected || !address) return;
-    if (fbUser && fbUser.uid.toLowerCase() === address.toLowerCase()) {
+    if (fbUser && fbUser.uid.toLowerCase() === addr) {
       setStatus("signed-in");
       return;
     }
@@ -65,18 +78,26 @@ export function useWalletSession() {
       ? dyn!.signMessage
       : (m: string) => signMessageAsync({ message: m });
 
-    const run =
-      pendingSignIn ??
-      (pendingSignIn = signInWithWallet({
-        address,
-        signMessage,
-      }).finally(() => {
-        pendingSignIn = null;
-      }));
+    const entry =
+      pendingSignIn?.address === addr
+        ? pendingSignIn
+        : (pendingSignIn = {
+            address: addr,
+            promise: signInWithWallet({ address: addr, signMessage }).finally(
+              () => {
+                if (pendingSignIn?.address === addr) pendingSignIn = null;
+              },
+            ),
+          });
 
-    run
+    entry.promise
       .then(() => {
-        if (!cancelled) setStatus("signed-in");
+        if (cancelled) return;
+        // Only report signed-in when the Firebase session really belongs to
+        // the CURRENT address; otherwise run again for this wallet.
+        const uid = firebaseAuth().currentUser?.uid.toLowerCase();
+        if (uid === addr) setStatus("signed-in");
+        else setRetry((n) => n + 1);
       })
       .catch((e: unknown) => {
         if (cancelled) return;
@@ -88,13 +109,18 @@ export function useWalletSession() {
     return () => {
       cancelled = true;
     };
-  }, [address, isConnected, useDynamic, dyn, signMessageAsync]);
+  }, [address, isConnected, useDynamic, dyn, signMessageAsync, retry]);
 
   const logout = useCallback(async () => {
     // Dynamic owns the browser wallet — clearing only Firebase would bounce
-    // the user straight back in via the still-connected primaryWallet.
-    if (dyn?.isConnected) await dyn.logout();
-    await signOut(firebaseAuth());
+    // the user straight back in via the still-connected primaryWallet. The
+    // finally guarantees the Firebase session dies even if the wallet
+    // logout throws.
+    try {
+      if (dyn?.isConnected) await dyn.logout();
+    } finally {
+      await signOut(firebaseAuth());
+    }
   }, [dyn]);
 
   return {
