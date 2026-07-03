@@ -8,15 +8,20 @@ export function AgentChat({
   address,
   projectId,
   agentName,
+  label,
   glyph = "✦",
   onBack,
 }: {
   address: string;
   projectId: string;
+  /** Machine name — routes the A2A mention. May be auto-suffixed (Assistant-2). */
   agentName: string;
+  /** Display label for the header/placeholder. Defaults to the machine name. */
+  label?: string;
   glyph?: string;
   onBack: () => void;
 }) {
+  const display = label ?? agentName;
   const messages = useProjectMessages(address, projectId);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -57,7 +62,7 @@ export function AgentChat({
           {glyph}
         </span>
         <div className="min-w-0">
-          <p className="truncate font-medium leading-tight">{agentName}</p>
+          <p className="truncate font-medium leading-tight">{display}</p>
           <p className="text-xs text-[var(--muted)]">Your agent</p>
         </div>
       </header>
@@ -65,7 +70,7 @@ export function AgentChat({
       <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 py-3">
         {messages.length === 0 && (
           <p className="mt-8 text-center text-xs text-[var(--muted)]">
-            Say hi to {agentName} or ask for help.
+            Say hi to {display} or ask for help.
           </p>
         )}
         {messages.map((m) => (
@@ -90,7 +95,7 @@ export function AgentChat({
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
-          placeholder={`Message ${agentName}…`}
+          placeholder={`Message ${display}…`}
           className="flex-1 rounded-2xl bg-white/5 px-3 py-2 text-sm outline-none"
         />
         <button

@@ -15,7 +15,7 @@ import {
   type Project,
   type Task,
 } from "../lib/perkosApi";
-import { renderSoulMd, STARTER_TEAM } from "../lib/souls";
+import { renderSoulMd, STARTER_TEAM, starterRoleFor } from "../lib/souls";
 import { WalletPanel } from "./WalletPanel";
 import { Brand } from "./Brand";
 import { AgentChat } from "./AgentChat";
@@ -60,20 +60,25 @@ export function Home({ address }: { address: string }) {
     try {
       const projectId = await createProject(address, { name: "My team", orgId: data.orgId });
       const launched: string[] = [];
+      let pmName: string | null = null;
       for (const role of STARTER_TEAM) {
-        setLaunching(role.role);
+        setLaunching(role.label);
         const res = await launchAgent({
           walletAddress: address,
           runtime: role.runtime,
-          name: role.role,
+          // Machine name (AGENT_NAME_PATTERN-safe) — the display label never
+          // goes to the API. The route may auto-suffix on collision, so we
+          // keep the ACTUAL name it returns.
+          name: role.name,
           soul: renderSoulMd(role.soul),
           deployMode: "perkos-managed",
           imageTag: IMAGE_TAG ?? null,
         });
-        launched.push(res.result.agent?.name ?? role.role);
+        const actualName = res.result.agent?.name ?? role.name;
+        launched.push(actualName);
+        if (role.isPM) pmName = actualName;
       }
-      const pm = STARTER_TEAM.find((r) => r.isPM)?.role ?? launched[0];
-      await setProjectTeam(address, projectId, launched, pm);
+      await setProjectTeam(address, projectId, launched, pmName ?? launched[0]);
       setLaunching(null);
       await load();
     } catch (e) {
@@ -105,12 +110,13 @@ export function Home({ address }: { address: string }) {
   }
 
   if (chatAgent && data.project) {
-    const member = STARTER_TEAM.find((r) => r.role === chatAgent);
+    const member = starterRoleFor(chatAgent);
     return (
       <AgentChat
         address={address}
         projectId={data.project.id}
         agentName={chatAgent}
+        label={member?.label ?? chatAgent}
         glyph={member?.glyph ?? "✦"}
         onBack={() => setChatAgent(null)}
       />
@@ -138,7 +144,7 @@ export function Home({ address }: { address: string }) {
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-medium text-[var(--muted)]">Your starter team</h2>
           {STARTER_TEAM.map((m) => (
-            <TeamMember key={m.role} glyph={m.glyph} name={m.role} blurb={m.blurb} status={null} />
+            <TeamMember key={m.name} glyph={m.glyph} name={m.label} blurb={m.blurb} status={null} />
           ))}
           <button
             onClick={startTeam}
@@ -156,12 +162,12 @@ export function Home({ address }: { address: string }) {
             </h2>
             {(data.project?.agentIds ?? []).map((name) => {
               const agent = data.agents.find((a) => a.name === name);
-              const member = STARTER_TEAM.find((r) => r.role === name);
+              const member = starterRoleFor(name);
               return (
                 <TeamMember
                   key={name}
                   glyph={member?.glyph ?? "✦"}
-                  name={name}
+                  name={member?.label ?? name}
                   blurb={member?.blurb ?? ""}
                   status={agent ? agentStatus(agent) : "provisioning"}
                   onClick={() => setChatAgent(name)}
