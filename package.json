@@ -11,6 +11,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@dynamic-labs/ethereum": "^4.91.6",
+    "@dynamic-labs/sdk-react-core": "^4.91.6",
     "@tanstack/react-query": "^5.100.10",
     "firebase": "^12.13.0",
     "firebase-admin": "^13.10.0",
