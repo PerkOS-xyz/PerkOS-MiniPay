@@ -11,14 +11,28 @@ export type SoulFields = {
 };
 
 export type StarterRole = {
-  /** Agent name (also the relay/A2A identity; auto-suffixed on collision by the launch route). */
-  role: string;
+  /**
+   * Machine name — the agent's unique relay/A2A identity sent to /agents/launch.
+   * MUST satisfy PerkOS-API's AGENT_NAME_PATTERN /^[a-zA-Z0-9_-]{2,32}$/ (NO spaces —
+   * "Money helper" used to 400 every starter-team launch). The launch route
+   * auto-suffixes on collision (Assistant → Assistant-2).
+   */
+  name: string;
+  /** Display label shown to the owner. Spaces welcome; never sent to the API. */
+  label: string;
   glyph: string;
   blurb: string;
   runtime: "OpenClaw" | "Hermes";
   isPM?: boolean;
   soul: SoulFields;
 };
+
+/** Resolve a launched agent name (possibly auto-suffixed) back to its template. */
+export function starterRoleFor(agentName: string): StarterRole | undefined {
+  return STARTER_TEAM.find(
+    (r) => agentName === r.name || agentName.startsWith(`${r.name}-`),
+  );
+}
 
 export function renderSoulMd(soul: SoulFields): string {
   const lines: string[] = [];
@@ -41,7 +55,8 @@ export function renderSoulMd(soul: SoulFields): string {
 
 export const STARTER_TEAM: StarterRole[] = [
   {
-    role: "Assistant",
+    name: "Assistant",
+    label: "Assistant",
     glyph: "✦",
     blurb: "Answers, messages, reminders, quick lookups — and keeps the team on track",
     runtime: "OpenClaw",
@@ -72,9 +87,10 @@ export const STARTER_TEAM: StarterRole[] = [
     },
   },
   {
-    role: "Money helper",
+    name: "Money-Helper",
+    label: "Money helper",
     glyph: "▲",
-    blurb: "Track income and expenses, and tell you how the week went",
+    blurb: "Log your sales, track who owes you, and see what you earned this week",
     runtime: "OpenClaw",
     soul: {
       identity:
@@ -86,7 +102,12 @@ export const STARTER_TEAM: StarterRole[] = [
       voice: ["Clear", "Reassuring", "Concrete with numbers"],
       expertise: {
         primary: "Simple income and expense tracking",
-        fluentIn: ["logging transactions", "weekly/monthly summaries", "spotting unusual spend"],
+        fluentIn: [
+          "logging transactions",
+          "weekly/monthly summaries",
+          "tracking who owes you (pending collections)",
+          "spotting unusual spend",
+        ],
         defersOn: ["formal accounting/tax filing", "drafting customer messages"],
       },
       boundaries: [
@@ -100,7 +121,8 @@ export const STARTER_TEAM: StarterRole[] = [
     },
   },
   {
-    role: "Customer replies",
+    name: "Customer-Replies",
+    label: "Customer replies",
     glyph: "◆",
     blurb: "Draft friendly replies to customers in your voice",
     runtime: "OpenClaw",

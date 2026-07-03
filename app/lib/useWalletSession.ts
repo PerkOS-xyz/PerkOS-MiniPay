@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { useAccount, useSignMessage } from "wagmi";
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { firebaseAuth } from "./firebase";
 import { signInWithWallet } from "./walletAuth";
+import { DynamicWalletContext } from "./dynamicWallet";
 
 export type WalletSessionStatus =
   | "loading"
@@ -17,12 +18,24 @@ export type WalletSessionStatus =
 // Module-level mutex: the hook renders from several places; only one sign-in flow at a time.
 let pendingSignIn: Promise<unknown> | null = null;
 
+/**
+ * Wallet session across the two hosts:
+ *  - MiniPay webview: wagmi injected connector (implicit connect via AutoConnect).
+ *  - Regular browser: Dynamic, via DynamicWalletContext (bridgeless — see
+ *    dynamicWallet.ts). We prefer Dynamic ONLY while it actually has a
+ *    connected wallet, so a stray Dynamic mount can never shadow wagmi.
+ */
 export function useWalletSession() {
-  const { address, isConnected } = useAccount();
+  const { address: wagmiAddress, isConnected: wagmiConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
+  const dyn = useContext(DynamicWalletContext);
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<WalletSessionStatus>("loading");
   const [error, setError] = useState<string | null>(null);
+
+  const useDynamic = Boolean(dyn?.isConnected && dyn.address);
+  const address = useDynamic ? dyn!.address : wagmiAddress;
+  const isConnected = useDynamic || wagmiConnected;
 
   useEffect(() => {
     return onAuthStateChanged(firebaseAuth(), (u) => {
@@ -45,11 +58,18 @@ export function useWalletSession() {
     setStatus("syncing");
     setError(null);
 
+    // Sign with whichever side owns the wallet: Dynamic's native signer in a
+    // browser tab, wagmi's injected connector inside MiniPay. Never mix — the
+    // wagmi connector is a dead end while Dynamic holds the wallet.
+    const signMessage = useDynamic
+      ? dyn!.signMessage
+      : (m: string) => signMessageAsync({ message: m });
+
     const run =
       pendingSignIn ??
       (pendingSignIn = signInWithWallet({
         address,
-        signMessage: (m) => signMessageAsync({ message: m }),
+        signMessage,
       }).finally(() => {
         pendingSignIn = null;
       }));
@@ -68,11 +88,14 @@ export function useWalletSession() {
     return () => {
       cancelled = true;
     };
-  }, [address, isConnected, signMessageAsync]);
+  }, [address, isConnected, useDynamic, dyn, signMessageAsync]);
 
   const logout = useCallback(async () => {
+    // Dynamic owns the browser wallet — clearing only Firebase would bounce
+    // the user straight back in via the still-connected primaryWallet.
+    if (dyn?.isConnected) await dyn.logout();
     await signOut(firebaseAuth());
-  }, []);
+  }, [dyn]);
 
   return {
     user,
