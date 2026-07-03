@@ -1,8 +1,9 @@
 "use client";
 
+import { useContext } from "react";
 import nextDynamic from "next/dynamic";
 import { useMiniPayHost } from "./lib/useIsMiniPay";
-import { dynamicBrowserEnabled } from "./lib/dynamicBrowser";
+import { DynamicWalletContext } from "./lib/dynamicWallet";
 import { useWalletSession, type WalletSessionStatus } from "./lib/useWalletSession";
 import { Home } from "./components/Home";
 import { Brand } from "./components/Brand";
@@ -65,19 +66,23 @@ function GateAction({
   if (isMiniPayHost) return note("Connecting your wallet…");
   if (isMiniPayHost === null) return note("Loading…");
 
-  // Regular browser. With the shared PerkOS Dynamic environment configured we
-  // open Dynamic's connect modal (email or wallet); without it, fall back to
-  // the bare injected connector for local testing.
-  if (dynamicBrowserEnabled(isMiniPayHost)) {
-    return (
-      <div className="mt-3">
-        <DynamicSignInButton />
-      </div>
-    );
-  }
+  return <BrowserGate />;
+}
+
+/**
+ * Regular-browser connect action. Gated on the CONTEXT, not on a second
+ * host-detection pass: DynamicWalletContext is non-null exactly when
+ * DynamicContextProvider is mounted (Providers made that call), so
+ * DynamicSignInButton can never render without its provider — page.tsx and
+ * providers.tsx each running their own useMiniPayHost poll could otherwise
+ * disagree for a tick. Without the Dynamic env id (context null) we fall back
+ * to the bare injected connector for local testing.
+ */
+function BrowserGate() {
+  const dyn = useContext(DynamicWalletContext);
   return (
     <div className="mt-3">
-      <ConnectButton />
+      {dyn ? <DynamicSignInButton /> : <ConnectButton />}
     </div>
   );
 }

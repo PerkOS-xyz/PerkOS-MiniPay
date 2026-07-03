@@ -27,10 +27,14 @@ export type StarterRole = {
   soul: SoulFields;
 };
 
-/** Resolve a launched agent name (possibly auto-suffixed) back to its template. */
+/**
+ * Resolve a launched agent name back to its template. Matches the exact name
+ * or the launch route's NUMERIC auto-suffix (Assistant-2) only — a future
+ * custom "Assistant-Sales" must not claim the Assistant template.
+ */
 export function starterRoleFor(agentName: string): StarterRole | undefined {
   return STARTER_TEAM.find(
-    (r) => agentName === r.name || agentName.startsWith(`${r.name}-`),
+    (r) => agentName === r.name || new RegExp(`^${r.name}-\\d+$`).test(agentName),
   );
 }
 

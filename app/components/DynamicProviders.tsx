@@ -8,6 +8,7 @@ import { EthereumWalletConnectors } from "@dynamic-labs/ethereum";
 
 import { wagmiConfig } from "../lib/wagmi";
 import { DYNAMIC_ENV_ID } from "../lib/dynamicBrowser";
+import { AutoConnect } from "./AutoConnect";
 import { DynamicWalletBridge } from "./DynamicWalletBridge";
 
 /**
@@ -42,6 +43,12 @@ export default function DynamicProviders({
     >
       <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
+          {/* Safety net for a late MiniPay provider injection: if this tree
+              was mounted because the host mis-resolved to "browser", AutoConnect
+              still connects the injected wagmi wallet (it only acts when
+              window.ethereum.isMiniPay) and useWalletSession's wagmi fallback
+              takes over. Inert in real browsers. */}
+          <AutoConnect />
           <DynamicWalletBridge>{children}</DynamicWalletBridge>
         </QueryClientProvider>
       </WagmiProvider>
