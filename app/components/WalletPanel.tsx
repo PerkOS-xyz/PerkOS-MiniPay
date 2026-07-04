@@ -66,15 +66,33 @@ export function WalletPanel({ address }: { address: string }) {
     cusdBal.value !== undefined || usdtBal.value !== undefined || usdcBal.value !== undefined;
   const walletUsd = (cusdBal.value ?? 0) + (usdtBal.value ?? 0) + (usdcBal.value ?? 0);
 
+  // Pay with the stablecoin the user actually holds — highest balance that
+  // covers the pack (MiniPay users hold USDT, so this avoids the cUSD-only trap).
+  function payTokenFor(usd: number): TokenInfo | null {
+    const opts: Array<[TokenInfo, number]> = [
+      [USDT, usdtBal.value ?? 0],
+      [CUSD, cusdBal.value ?? 0],
+      [USDC, usdcBal.value ?? 0],
+    ];
+    const covering = opts.filter(([, bal]) => bal >= usd).sort((a, b) => b[1] - a[1]);
+    return covering[0]?.[0] ?? null;
+  }
+
   async function buyPack(pack: { usd: number; credits: number }) {
     setMsg(null);
     if (!PAYMENT_ADDRESS) {
       setMsg("Top-ups aren't configured yet.");
       return;
     }
+    const token = payTokenFor(pack.usd);
+    if (!token) {
+      setMsg(`You need at least $${pack.usd} in USDT, cUSD or USDC to buy this pack.`);
+      return;
+    }
     setBusy(true);
     try {
-      const hash = await pay(PAYMENT_ADDRESS, String(pack.usd));
+      setMsg(`Paying ${pack.usd} ${token.symbol}…`);
+      const hash = await pay(PAYMENT_ADDRESS, String(pack.usd), token);
       setMsg("Confirming payment…");
       // The verifier reads the tx on-chain; retry briefly if it's not mined yet.
       let credited = false;
@@ -143,7 +161,7 @@ export function WalletPanel({ address }: { address: string }) {
           </button>
         ))}
       </div>
-      <p className="mt-2 text-xs text-[var(--muted)]">Credits pay for the work · gas is paid in cUSD</p>
+      <p className="mt-2 text-xs text-[var(--muted)]">Credits pay for the work · pay with USDT, cUSD or USDC</p>
       {msg && <p className="mt-1 text-xs text-[var(--muted)]">{msg}</p>}
     </section>
   );
