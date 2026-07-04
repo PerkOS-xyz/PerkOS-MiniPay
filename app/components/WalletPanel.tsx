@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useReadContract } from "wagmi";
 import { celo } from "wagmi/chains";
 import { formatUnits } from "viem";
-import { CUSD } from "../lib/tokenAddresses";
+import { CUSD, USDC, USDT, type TokenInfo } from "../lib/tokenAddresses";
 import { usePayCusd } from "../lib/usePayCusd";
 import { getBillingMe, getPacks, depositCelo, type BillingMe, type CreditPacks } from "../lib/perkosApi";
 
@@ -40,15 +40,31 @@ export function WalletPanel({ address }: { address: string }) {
     getPacks().then(setPacks).catch(() => {});
   }, [refreshBilling]);
 
-  const { data: cusdRaw, refetch } = useReadContract({
-    address: CUSD.address,
-    abi: ERC20_BALANCE_ABI,
-    functionName: "balanceOf",
-    args: [account],
-    chainId: celo.id,
-    query: { enabled: Boolean(address) },
-  });
-  const cusd = cusdRaw !== undefined ? formatUnits(cusdRaw as bigint, CUSD.decimals) : undefined;
+  // MiniPay holds funds in USDT by default (not cUSD), so read all three
+  // stablecoins and show the total — the real spendable "Dollars" balance.
+  function useBal(token: TokenInfo) {
+    const { data, refetch } = useReadContract({
+      address: token.address,
+      abi: ERC20_BALANCE_ABI,
+      functionName: "balanceOf",
+      args: [account],
+      chainId: celo.id,
+      query: { enabled: Boolean(address) },
+    });
+    const value = data !== undefined ? Number(formatUnits(data as bigint, token.decimals)) : undefined;
+    return { value, refetch };
+  }
+  const cusdBal = useBal(CUSD);
+  const usdtBal = useBal(USDT);
+  const usdcBal = useBal(USDC);
+  const refetch = () => {
+    cusdBal.refetch();
+    usdtBal.refetch();
+    usdcBal.refetch();
+  };
+  const ready3 =
+    cusdBal.value !== undefined || usdtBal.value !== undefined || usdcBal.value !== undefined;
+  const walletUsd = (cusdBal.value ?? 0) + (usdtBal.value ?? 0) + (usdcBal.value ?? 0);
 
   async function buyPack(pack: { usd: number; credits: number }) {
     setMsg(null);
@@ -106,8 +122,11 @@ export function WalletPanel({ address }: { address: string }) {
           )}
         </div>
         <div className="text-right">
-          <p className="text-xs text-[var(--muted)]">cUSD</p>
-          <p className="text-sm font-medium">{cusd ? Number(cusd).toFixed(2) : "—"}</p>
+          <p className="text-xs text-[var(--muted)]">In wallet</p>
+          <p className="text-sm font-medium">{ready3 ? `$${walletUsd.toFixed(2)}` : "—"}</p>
+          {ready3 && (usdtBal.value ?? 0) > 0 && (
+            <p className="text-[10px] text-[var(--muted)]">{(usdtBal.value ?? 0).toFixed(2)} USDT</p>
+          )}
         </div>
       </div>
 
