@@ -20,6 +20,7 @@ import { glyphFor } from "../lib/templateMeta";
 import { useIsMiniPay } from "../lib/useIsMiniPay";
 import { useWalletSession } from "../lib/useWalletSession";
 import { WalletPanel } from "./WalletPanel";
+import { DiagnosticPanel } from "./DiagnosticPanel";
 import { Brand } from "./Brand";
 import { AgentChat } from "./AgentChat";
 import { TemplateGallery } from "./TemplateGallery";
@@ -140,6 +141,7 @@ export function Home({ address }: { address: string }) {
           </p>
         </div>
         <WalletPanel address={address} />
+        <DiagnosticPanel address={address} />
         <TemplateGallery
           activeTemplateIds={activeIds}
           onActivated={(projectId) => {
@@ -169,6 +171,7 @@ export function Home({ address }: { address: string }) {
         <p className="text-sm text-[var(--muted)]">Tap a tool to use it.</p>
       </div>
       <WalletPanel address={address} />
+      <DiagnosticPanel address={address} />
       <section className="flex flex-col gap-3">
         {data.projects.map((p) => {
           const tpl = templateFor(p);
