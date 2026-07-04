@@ -3,54 +3,48 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   agentStatus,
-  createProject,
-  ensureDefaultOrg,
   giveGoal,
-  launchAgent,
   listAgents,
   listProjects,
   listTasks,
-  setProjectTeam,
   type Agent,
   type Project,
   type Task,
+  type Template,
 } from "../lib/perkosApi";
-import { renderSoulMd, STARTER_TEAM, starterRoleFor } from "../lib/souls";
+import { listTemplates } from "../lib/perkosApi";
+import { glyphFor } from "../lib/templateMeta";
 import { useIsMiniPay } from "../lib/useIsMiniPay";
 import { useWalletSession } from "../lib/useWalletSession";
 import { WalletPanel } from "./WalletPanel";
 import { Brand } from "./Brand";
 import { AgentChat } from "./AgentChat";
+import { TemplateGallery } from "./TemplateGallery";
 
-const IMAGE_TAG = process.env.NEXT_PUBLIC_PERKOS_DEFAULT_IMAGE_TAG || undefined;
-
-type Loaded = { orgId: string; agents: Agent[]; project: Project | null; tasks: Task[] };
+type Loaded = { agents: Agent[]; projects: Project[]; templates: Template[] };
 
 export function Home({ address }: { address: string }) {
-  // Logout is a browser-only affordance: inside MiniPay the wallet IS the
-  // host identity and connection is implicit (rule C1) — no logout there.
+  // Logout is browser-only: inside MiniPay the wallet is the host identity
+  // and connection is implicit (rule C1) — no logout affordance there.
   const isMiniPay = useIsMiniPay();
   const { logout } = useWalletSession();
+
   const [data, setData] = useState<Loaded | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [launching, setLaunching] = useState<string | null>(null);
-  const [goal, setGoal] = useState("");
-  const [goalBusy, setGoalBusy] = useState(false);
+  const [view, setView] = useState<"list" | "gallery">("list");
+  const [openProjectId, setOpenProjectId] = useState<string | null>(null);
   const [chatAgent, setChatAgent] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const orgId = await ensureDefaultOrg(address);
-      const [agents, projects] = await Promise.all([
+      const [agents, projects, templates] = await Promise.all([
         listAgents(address),
-        listProjects(address, orgId),
+        listProjects(address),
+        listTemplates().catch(() => [] as Template[]),
       ]);
-      const project = projects.find((p) => p.pmAgent) ?? projects[0] ?? null;
-      const tasks = project ? await listTasks(address, project.id) : [];
-      setData({ orgId, agents, project, tasks });
-      if (project?.goal) setGoal(project.goal);
+      setData({ agents, projects, templates });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't load your team");
+      setError(e instanceof Error ? e.message : "Couldn't load your tools");
     }
   }, [address]);
 
@@ -60,239 +54,291 @@ export function Home({ address }: { address: string }) {
     return () => clearInterval(t);
   }, [load]);
 
-  async function startTeam() {
-    if (!data) return;
-    setError(null);
-    try {
-      const projectId = await createProject(address, { name: "My team", orgId: data.orgId });
-      const launched: string[] = [];
-      let pmName: string | null = null;
-      for (const role of STARTER_TEAM) {
-        setLaunching(role.label);
-        const res = await launchAgent({
-          walletAddress: address,
-          runtime: role.runtime,
-          // Machine name (AGENT_NAME_PATTERN-safe) — the display label never
-          // goes to the API. The route may auto-suffix on collision, so we
-          // keep the ACTUAL name it returns.
-          name: role.name,
-          soul: renderSoulMd(role.soul),
-          deployMode: "perkos-managed",
-          imageTag: IMAGE_TAG ?? null,
-        });
-        const actualName = res.result.agent?.name ?? role.name;
-        launched.push(actualName);
-        if (role.isPM) pmName = actualName;
-      }
-      await setProjectTeam(address, projectId, launched, pmName ?? launched[0]);
-      setLaunching(null);
-      await load();
-    } catch (e) {
-      setLaunching(null);
-      setError(e instanceof Error ? e.message : "Couldn't start your team");
-    }
-  }
-
-  async function submitGoal() {
-    if (!data?.project || !goal.trim()) return;
-    setGoalBusy(true);
-    setError(null);
-    try {
-      await giveGoal(address, data.project.id, goal.trim());
-      await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't send the goal");
-    } finally {
-      setGoalBusy(false);
-    }
-  }
-
   if (!data) {
     return (
       <main className="px-5 py-10 text-center text-sm text-[var(--muted)]">
-        {error ?? "Loading your team…"}
+        {error ?? "Loading…"}
       </main>
     );
   }
 
-  if (chatAgent && data.project) {
-    const member = starterRoleFor(chatAgent);
+  const templateFor = (p: Project): Template | undefined =>
+    data.templates.find((t) => t.id === (p as Project & { templateId?: string }).templateId);
+  const roleLabel = (p: Project | undefined, agentName: string): { label: string; glyph: string } => {
+    const tpl = p ? templateFor(p) : undefined;
+    const role = tpl?.roles.find((r) => r.agentName === agentName);
+    return { label: role?.label ?? agentName, glyph: tpl ? glyphFor(tpl.id) : "✦" };
+  };
+
+  const openProject = openProjectId
+    ? data.projects.find((p) => p.id === openProjectId) ?? null
+    : null;
+
+  // --- Chat with one agent --------------------------------------------------
+  if (chatAgent && openProject) {
+    const { label, glyph } = roleLabel(openProject, chatAgent);
     return (
       <AgentChat
         address={address}
-        projectId={data.project.id}
+        projectId={openProject.id}
         agentName={chatAgent}
-        label={member?.label ?? chatAgent}
-        glyph={member?.glyph ?? "✦"}
+        label={label}
+        glyph={glyph}
         onBack={() => setChatAgent(null)}
       />
     );
   }
 
-  const hasTeam = Boolean(data.project && (data.project.agentIds?.length ?? 0) > 0);
-  const session = data.project?.pmSession;
+  const header = (
+    <header className="flex items-center justify-between">
+      <Brand />
+      {!isMiniPay && (
+        <button
+          onClick={logout}
+          className="text-xs text-[var(--muted)] underline-offset-2 hover:underline"
+        >
+          Log out
+        </button>
+      )}
+    </header>
+  );
 
-  return (
-    <main className="flex flex-col gap-5 px-5 py-7">
-      <header className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <Brand />
-          {!isMiniPay && (
-            <button
-              onClick={logout}
-              className="text-xs text-[var(--muted)] underline-offset-2 hover:underline"
-            >
-              Log out
-            </button>
-          )}
-        </div>
+  // --- One activated tool (project) detail ---------------------------------
+  if (openProject) {
+    return (
+      <ProjectView
+        address={address}
+        project={openProject}
+        agents={data.agents}
+        template={templateFor(openProject)}
+        roleLabel={roleLabel}
+        onBack={() => setOpenProjectId(null)}
+        onOpenChat={setChatAgent}
+        onReload={load}
+      />
+    );
+  }
+
+  const activeIds = new Set(
+    data.projects.map((p) => (p as Project & { templateId?: string }).templateId).filter(Boolean) as string[],
+  );
+
+  // --- Gallery (browse & add tools) ----------------------------------------
+  if (view === "gallery" || data.projects.length === 0) {
+    return (
+      <main className="flex flex-col gap-5 px-5 py-7">
+        {header}
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold">Your AI team</h1>
+          <h1 className="text-2xl font-semibold">
+            {data.projects.length === 0 ? "Pick a tool to start" : "Add a tool"}
+          </h1>
           <p className="text-sm text-[var(--muted)]">
-            {hasTeam ? "Give them a goal and they get to work." : "Start your free team to begin."}
+            Simple money and customer helpers for your business — you pay only for the work.
           </p>
         </div>
-      </header>
-
-      <WalletPanel address={address} />
-
-      {!hasTeam ? (
-        <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium text-[var(--muted)]">Your starter team</h2>
-          {STARTER_TEAM.map((m) => (
-            <TeamMember key={m.name} glyph={m.glyph} name={m.label} blurb={m.blurb} status={null} />
-          ))}
+        <WalletPanel address={address} />
+        <TemplateGallery
+          activeTemplateIds={activeIds}
+          onActivated={(projectId) => {
+            setView("list");
+            setOpenProjectId(projectId);
+            load();
+          }}
+        />
+        {data.projects.length > 0 && (
           <button
-            onClick={startTeam}
-            disabled={Boolean(launching)}
-            className="mt-1 rounded-2xl bg-[var(--accent)] px-4 py-3 font-medium text-white disabled:opacity-60"
+            onClick={() => setView("list")}
+            className="text-sm text-[var(--muted)] underline-offset-2 hover:underline"
           >
-            {launching ? `Starting ${launching}…` : "Start my team — free"}
+            ‹ Back to my tools
           </button>
-        </section>
-      ) : (
-        <>
-          <section className="flex flex-col gap-3">
-            <h2 className="text-sm font-medium text-[var(--muted)]">
-              Your team <span className="font-normal opacity-70">· tap to chat</span>
-            </h2>
-            {(data.project?.agentIds ?? []).map((name) => {
-              const agent = data.agents.find((a) => a.name === name);
-              const member = starterRoleFor(name);
-              return (
-                <TeamMember
-                  key={name}
-                  glyph={member?.glyph ?? "✦"}
-                  name={member?.label ?? name}
-                  blurb={member?.blurb ?? ""}
-                  status={agent ? agentStatus(agent) : "provisioning"}
-                  onClick={() => setChatAgent(name)}
-                />
-              );
-            })}
-          </section>
+        )}
+      </main>
+    );
+  }
 
-          <section className="flex flex-col gap-2">
-            <h2 className="text-sm font-medium text-[var(--muted)]">Give your team a goal</h2>
-            <textarea
-              value={goal}
-              onChange={(e) => setGoal(e.target.value)}
-              placeholder="e.g. Reply to today's customer messages and tell me what I earned this week"
-              rows={3}
-              className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm outline-none"
-            />
+  // --- My tools (activated projects) ---------------------------------------
+  return (
+    <main className="flex flex-col gap-5 px-5 py-7">
+      {header}
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold">Your tools</h1>
+        <p className="text-sm text-[var(--muted)]">Tap a tool to use it.</p>
+      </div>
+      <WalletPanel address={address} />
+      <section className="flex flex-col gap-3">
+        {data.projects.map((p) => {
+          const tpl = templateFor(p);
+          const online = (p.agentIds ?? []).some((n) =>
+            data.agents.find((a) => a.name === n && agentStatus(a) === "online"),
+          );
+          return (
             <button
-              onClick={submitGoal}
-              disabled={goalBusy || !goal.trim()}
-              className="rounded-2xl bg-[var(--accent)] px-4 py-3 font-medium text-white disabled:opacity-60"
+              key={p.id}
+              onClick={() => setOpenProjectId(p.id)}
+              className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-left active:scale-[0.99]"
             >
-              {goalBusy ? "Sending…" : "Give the goal"}
+              <span
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-lg"
+                style={{ background: "linear-gradient(135deg,#8b5cf6,#ec4899)" }}
+                aria-hidden
+              >
+                {tpl ? glyphFor(tpl.id) : "✦"}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium">{tpl?.name ?? p.name}</p>
+                <p className="text-xs text-[var(--muted)]">{tpl?.tagline ?? `${p.agentIds?.length ?? 0} helpers`}</p>
+              </div>
+              <span
+                className="h-2.5 w-2.5 shrink-0 rounded-full"
+                style={{ background: online ? "#4ade80" : "#9ca3af" }}
+                aria-label={online ? "online" : "waking"}
+              />
+              <span className="shrink-0 text-lg text-[var(--muted)]" aria-hidden>›</span>
             </button>
-            {session && (
-              <p className="text-xs text-[var(--muted)]">
-                Team status: <span className="text-[var(--foreground)]">{session.status}</span>
-                {session.round ? ` · round ${session.round}` : ""}
-              </p>
-            )}
-          </section>
-
-          <section className="flex flex-col gap-2">
-            <h2 className="text-sm font-medium text-[var(--muted)]">What they're doing</h2>
-            {data.tasks.length === 0 ? (
-              <p className="text-xs text-[var(--muted)]">No tasks yet — give a goal to get started.</p>
-            ) : (
-              data.tasks.map((t) => <TaskRow key={t.id} task={t} />)
-            )}
-          </section>
-        </>
-      )}
-
+          );
+        })}
+      </section>
+      <button
+        onClick={() => setView("gallery")}
+        className="rounded-2xl border border-dashed border-white/20 px-4 py-3 text-sm font-medium text-[var(--muted)]"
+      >
+        + Add another tool
+      </button>
       {error && <p className="text-xs text-red-300">{error}</p>}
     </main>
   );
 }
 
-function TeamMember({
-  glyph,
-  name,
-  blurb,
-  status,
-  onClick,
+// ---------------------------------------------------------------------------
+
+function ProjectView({
+  address,
+  project,
+  agents,
+  template,
+  roleLabel,
+  onBack,
+  onOpenChat,
+  onReload,
 }: {
-  glyph: string;
-  name: string;
-  blurb: string;
-  status: "online" | "provisioning" | "offline" | null;
-  onClick?: () => void;
+  address: string;
+  project: Project;
+  agents: Agent[];
+  template: Template | undefined;
+  roleLabel: (p: Project | undefined, name: string) => { label: string; glyph: string };
+  onBack: () => void;
+  onOpenChat: (agentName: string) => void;
+  onReload: () => void;
 }) {
-  const dot =
-    status === "online" ? "#4ade80" : status === "provisioning" ? "#fbbf24" : status === "offline" ? "#9ca3af" : "transparent";
+  const [goal, setGoal] = useState(project.goal ?? "");
+  const [goalBusy, setGoalBusy] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  const inner = (
-    <>
-      <span
-        className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-lg"
-        style={{ background: "linear-gradient(135deg,#8b5cf6,#ec4899)" }}
-        aria-hidden
-      >
-        {glyph}
-      </span>
-      <div className="min-w-0 flex-1 text-left">
-        <p className="font-medium">{name}</p>
-        <p className="text-xs text-[var(--muted)]">{blurb}</p>
-      </div>
-      {status && (
-        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: dot }} aria-label={status} />
-      )}
-      {onClick && <span className="shrink-0 text-lg text-[var(--muted)]" aria-hidden>›</span>}
-    </>
-  );
+  useEffect(() => {
+    listTasks(address, project.id).then(setTasks).catch(() => setTasks([]));
+  }, [address, project.id]);
 
-  if (onClick) {
-    return (
-      <button
-        onClick={onClick}
-        className="flex w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-left active:scale-[0.99]"
-      >
-        {inner}
-      </button>
-    );
+  async function submitGoal() {
+    if (!goal.trim()) return;
+    setGoalBusy(true);
+    setError(null);
+    try {
+      await giveGoal(address, project.id, goal.trim());
+      onReload();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't send that");
+    } finally {
+      setGoalBusy(false);
+    }
   }
-  return <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">{inner}</div>;
-}
 
-function TaskRow({ task }: { task: Task }) {
-  const tone =
-    task.status === "Done" ? "#4ade80" : task.status === "In progress" ? "#fbbf24" : "#9ca3af";
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3">
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm">{task.name}</p>
-        {task.agent && <p className="text-xs text-[var(--muted)]">{task.agent}</p>}
-      </div>
-      <span className="ml-3 shrink-0 text-xs" style={{ color: tone }}>
-        {task.status}
-      </span>
-    </div>
+    <main className="flex flex-col gap-5 px-5 py-7">
+      <header className="flex items-center gap-3">
+        <button onClick={onBack} aria-label="Back" className="-ml-1 px-1 text-2xl leading-none">
+          ‹
+        </button>
+        <div className="min-w-0">
+          <h1 className="truncate text-xl font-semibold">{template?.name ?? project.name}</h1>
+          {template?.tagline && (
+            <p className="truncate text-xs text-[var(--muted)]">{template.tagline}</p>
+          )}
+        </div>
+      </header>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-medium text-[var(--muted)]">
+          Your helpers <span className="font-normal opacity-70">· tap to chat</span>
+        </h2>
+        {(project.agentIds ?? []).map((name) => {
+          const agent = agents.find((a) => a.name === name);
+          const { label, glyph } = roleLabel(project, name);
+          const status = agent ? agentStatus(agent) : "provisioning";
+          const dot =
+            status === "online" ? "#4ade80" : status === "provisioning" ? "#fbbf24" : "#9ca3af";
+          return (
+            <button
+              key={name}
+              onClick={() => onOpenChat(name)}
+              className="flex w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-left active:scale-[0.99]"
+            >
+              <span
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-lg"
+                style={{ background: "linear-gradient(135deg,#8b5cf6,#ec4899)" }}
+                aria-hidden
+              >
+                {glyph}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium">{label}</p>
+              </div>
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: dot }} />
+              <span className="shrink-0 text-lg text-[var(--muted)]" aria-hidden>›</span>
+            </button>
+          );
+        })}
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-sm font-medium text-[var(--muted)]">Ask them to do something</h2>
+        <textarea
+          value={goal}
+          onChange={(e) => setGoal(e.target.value)}
+          placeholder="e.g. Log today's sales and tell me what I earned this week"
+          rows={3}
+          className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm outline-none"
+        />
+        <button
+          onClick={submitGoal}
+          disabled={goalBusy || !goal.trim()}
+          className="rounded-2xl bg-[var(--accent)] px-4 py-3 font-medium text-white disabled:opacity-60"
+        >
+          {goalBusy ? "Sending…" : "Send"}
+        </button>
+      </section>
+
+      {tasks.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-medium text-[var(--muted)]">What they're doing</h2>
+          {tasks.map((t) => {
+            const tone =
+              t.status === "Done" ? "#4ade80" : t.status === "In progress" ? "#fbbf24" : "#9ca3af";
+            return (
+              <div
+                key={t.id}
+                className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3"
+              >
+                <p className="min-w-0 flex-1 truncate text-sm">{t.name}</p>
+                <span className="ml-3 shrink-0 text-xs" style={{ color: tone }}>{t.status}</span>
+              </div>
+            );
+          })}
+        </section>
+      )}
+
+      {error && <p className="text-xs text-red-300">{error}</p>}
+    </main>
   );
 }

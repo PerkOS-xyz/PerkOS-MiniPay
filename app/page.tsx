@@ -27,9 +27,9 @@ export default function Page() {
   return (
     <main className="flex min-h-[100dvh] flex-col items-center justify-center gap-3 px-6 text-center">
       <Brand className="mb-2 justify-center" />
-      <h1 className="text-2xl font-semibold">Your AI team</h1>
+      <h1 className="text-2xl font-semibold">Money &amp; customer tools</h1>
       <p className="text-sm text-[var(--muted)]">
-        A coworking of agents for your small business — on Celo, in MiniPay.
+        Simple helpers for your business, inside your wallet. Pay only for the work.
       </p>
       <GateAction
         status={status}
