@@ -1,52 +1,46 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { addProjectMessage, mentionAgent } from "../lib/perkosApi";
-import { useProjectMessages } from "../lib/useProjectMessages";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useChatConversation } from "../lib/useChatConversation";
 
 export function AgentChat({
-  address,
   projectId,
   agentName,
   label,
   glyph = "✦",
   onBack,
 }: {
-  address: string;
+  /** kept for API symmetry; chat is scoped to the project conversation */
+  address?: string;
   projectId: string;
-  /** Machine name — routes the A2A mention. May be auto-suffixed (Assistant-2). */
+  /** Machine name of the basic being chatted with (display + reply attribution). */
   agentName: string;
-  /** Display label for the header/placeholder. Defaults to the machine name. */
+  /** Display label for the header/placeholder. */
   label?: string;
   glyph?: string;
   onBack: () => void;
 }) {
   const display = label ?? agentName;
-  const messages = useProjectMessages(address, projectId);
+  // The project conversation the activation created (project-{id}); the user
+  // + the template's basics are participants. Messages + agent replies stream
+  // over PerkOS-Chat (WS) — the same path the main PerkOS App uses.
+  const convId = useMemo(() => `project-${projectId}`, [projectId]);
+  const { messages, status, send } = useChatConversation(convId);
   const [text, setText] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
-  async function send() {
+  function onSend() {
     const t = text.trim();
-    if (!t || busy) return;
-    setBusy(true);
-    setError(null);
+    if (!t) return;
     setText("");
-    try {
-      await addProjectMessage(address, projectId, t, [`agent:${agentName}`]);
-      await mentionAgent(projectId, agentName, t);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't send");
-    } finally {
-      setBusy(false);
-    }
+    send(t);
   }
+
+  const connecting = status !== "connected";
 
   return (
     <main className="flex h-[100dvh] flex-col">
@@ -61,9 +55,11 @@ export function AgentChat({
         >
           {glyph}
         </span>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="truncate font-medium leading-tight">{display}</p>
-          <p className="text-xs text-[var(--muted)]">Your agent</p>
+          <p className="text-xs text-[var(--muted)]">
+            {connecting ? "Connecting…" : "Your helper"}
+          </p>
         </div>
       </header>
 
@@ -73,37 +69,36 @@ export function AgentChat({
             Say hi to {display} or ask for help.
           </p>
         )}
-        {messages.map((m) => (
-          <div
-            key={m.id}
-            className={`max-w-[82%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm ${
-              m.from === "user"
-                ? "self-end bg-[var(--accent)] text-white"
-                : "self-start bg-white/10"
-            }`}
-          >
-            {m.text}
-          </div>
-        ))}
+        {messages.map((m) => {
+          const mine = m.from.startsWith("user:");
+          return (
+            <div
+              key={m.id}
+              className={`max-w-[82%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm ${
+                mine ? "self-end bg-[var(--accent)] text-white" : "self-start bg-white/10"
+              }`}
+            >
+              {m.text}
+            </div>
+          );
+        })}
         <div ref={endRef} />
       </div>
-
-      {error && <p className="px-4 pb-1 text-xs text-red-300">{error}</p>}
 
       <div className="flex items-center gap-2 border-t border-white/10 px-3 py-2">
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && send()}
+          onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && onSend()}
           placeholder={`Message ${display}…`}
           className="flex-1 rounded-2xl bg-white/5 px-3 py-2 text-sm outline-none"
         />
         <button
-          onClick={send}
-          disabled={busy || !text.trim()}
+          onClick={onSend}
+          disabled={!text.trim()}
           className="rounded-2xl bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
         >
-          {busy ? "…" : "Send"}
+          Send
         </button>
       </div>
     </main>
