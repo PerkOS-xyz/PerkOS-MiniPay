@@ -259,3 +259,47 @@ export async function mentionAgent(
     body: JSON.stringify({ agentName, text }),
   });
 }
+
+// ─── Templates (shared-agents redesign) ──────────────────────────────────────
+
+export type TemplateRoleRef = { agentName: string; label: string; isPM?: boolean };
+
+export type Template = {
+  id: string;
+  name: string;
+  tagline?: string;
+  category?: string;
+  pricingBand?: "basic" | "pro";
+  ring?: 1 | 2 | 3;
+  roles: TemplateRoleRef[];
+};
+
+export type Activation = {
+  id: string;
+  wallet: string;
+  templateId: string;
+  projectId: string;
+  convId: string;
+  agentNames: string[];
+  status: "active" | "closed";
+};
+
+const apiBase = process.env.NEXT_PUBLIC_PERKOS_API_URL ?? "https://api.perkos.xyz";
+
+/** Public catalog of activatable templates (no auth). */
+export async function listTemplates(): Promise<Template[]> {
+  const res = await fetch(`${apiBase.replace(/\/$/, "")}/templates`);
+  if (!res.ok) throw new Error(`Failed to load templates (${res.status})`);
+  const { templates } = (await res.json()) as { templates: Template[] };
+  return templates;
+}
+
+/** Activate a template → instant project on the PerkOS-owned shared fleet. */
+export async function activateTemplate(
+  templateId: string,
+): Promise<{ ok: boolean; alreadyActive: boolean; activation: Activation }> {
+  return authedJson("/templates/activate", {
+    method: "POST",
+    body: JSON.stringify({ templateId }),
+  });
+}
