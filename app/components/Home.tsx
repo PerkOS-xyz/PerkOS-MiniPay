@@ -3,14 +3,17 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   agentStatus,
-  giveGoal,
+  approveWorkflow,
+  getWorkflow,
   listAgents,
   listProjects,
   listTasks,
+  proposeWorkflow,
   type Agent,
   type Project,
   type Task,
   type Template,
+  type WorkflowTask,
 } from "../lib/perkosApi";
 import { listTemplates } from "../lib/perkosApi";
 import { glyphFor } from "../lib/templateMeta";
@@ -232,7 +235,20 @@ function ProjectView({
   onReload: () => void;
 }) {
   const [goal, setGoal] = useState(project.goal ?? "");
-  const [goalBusy, setGoalBusy] = useState(false);
+  const [phase, setPhase] = useState<
+    "idle" | "proposing" | "intake" | "proposed" | "approving"
+  >("idle");
+  const [plan, setPlan] = useState<{
+    docId: string;
+    estimateCredits: number;
+    tasks: WorkflowTask[];
+    chat: string;
+  } | null>(null);
+  const [intakeChat, setIntakeChat] = useState<string | null>(null);
+  const [balance, setBalance] = useState<{ credits: number; freeWorkflowsLeft: number } | null>(null);
+  const [freeEligible, setFreeEligible] = useState(false);
+  const [canAfford, setCanAfford] = useState(false);
+  const [needCredits, setNeedCredits] = useState<{ need: number; have: number } | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -240,18 +256,69 @@ function ProjectView({
     listTasks(address, project.id).then(setTasks).catch(() => setTasks([]));
   }, [address, project.id]);
 
-  async function submitGoal() {
+  const errMsg = (e: unknown) => (e instanceof Error ? e.message : "Something went wrong");
+
+  async function propose() {
     if (!goal.trim()) return;
-    setGoalBusy(true);
+    setPhase("proposing");
     setError(null);
+    setNeedCredits(null);
+    setIntakeChat(null);
     try {
-      await giveGoal(address, project.id, goal.trim());
-      onReload();
+      const res = await proposeWorkflow(project.id, goal.trim());
+      if (res.status === "intake") {
+        setIntakeChat(res.chat);
+        setPhase("intake");
+        return;
+      }
+      const view = await getWorkflow(project.id, res.docId);
+      setPlan({ docId: res.docId, estimateCredits: view.estimateCredits, tasks: view.tasks, chat: res.chat });
+      setBalance(view.balance);
+      setFreeEligible(view.freeEligible);
+      setCanAfford(view.canAfford);
+      setPhase("proposed");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't send that");
-    } finally {
-      setGoalBusy(false);
+      setError(errMsg(e));
+      setPhase("idle");
     }
+  }
+
+  async function approve() {
+    if (!plan) return;
+    setPhase("approving");
+    setError(null);
+    setNeedCredits(null);
+    try {
+      const res = await approveWorkflow(project.id, plan.docId);
+      if (res.ok) {
+        setPlan(null);
+        setGoal("");
+        setPhase("idle");
+        listTasks(address, project.id).then(setTasks).catch(() => {});
+        onReload();
+      } else if (res.code === "INSUFFICIENT_CREDITS") {
+        setNeedCredits({ need: res.need ?? 0, have: res.have ?? 0 });
+        setPhase("proposed");
+      } else if (res.code === "WORKFLOW_TOO_LARGE") {
+        setError(
+          `That's a big job (${res.estimateCredits} credits, max ${res.max} at once). Try breaking it into smaller asks.`,
+        );
+        setPhase("proposed");
+      } else {
+        setError("Couldn't start that. Please try again.");
+        setPhase("proposed");
+      }
+    } catch (e) {
+      setError(errMsg(e));
+      setPhase("proposed");
+    }
+  }
+
+  function discard() {
+    setPlan(null);
+    setNeedCredits(null);
+    setError(null);
+    setPhase("idle");
   }
 
   return (
@@ -303,20 +370,107 @@ function ProjectView({
 
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-medium text-[var(--muted)]">Ask them to do something</h2>
-        <textarea
-          value={goal}
-          onChange={(e) => setGoal(e.target.value)}
-          placeholder="e.g. Log today's sales and tell me what I earned this week"
-          rows={3}
-          className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm outline-none"
-        />
-        <button
-          onClick={submitGoal}
-          disabled={goalBusy || !goal.trim()}
-          className="rounded-2xl bg-[var(--accent)] px-4 py-3 font-medium text-white disabled:opacity-60"
-        >
-          {goalBusy ? "Sending…" : "Send"}
-        </button>
+
+        {/* Compose / intake: enter a goal, propose a plan */}
+        {(phase === "idle" || phase === "proposing" || phase === "intake") && (
+          <>
+            {intakeChat && (
+              <div className="rounded-2xl border border-amber-300/20 bg-amber-300/5 p-3 text-sm">
+                <p className="mb-1 text-xs font-medium text-amber-200/80">One quick question</p>
+                <p>{intakeChat}</p>
+              </div>
+            )}
+            <textarea
+              value={goal}
+              onChange={(e) => setGoal(e.target.value)}
+              placeholder="e.g. Log today's sales and tell me what I earned this week"
+              rows={3}
+              className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm outline-none"
+            />
+            <button
+              onClick={propose}
+              disabled={phase === "proposing" || !goal.trim()}
+              className="rounded-2xl bg-[var(--accent)] px-4 py-3 font-medium text-white disabled:opacity-60"
+            >
+              {phase === "proposing"
+                ? "Planning…"
+                : intakeChat
+                  ? "Update & re-plan"
+                  : "Plan this"}
+            </button>
+            <p className="text-center text-xs text-[var(--muted)]">
+              You'll see the plan and its cost before anything runs.
+            </p>
+          </>
+        )}
+
+        {/* Proposal: show the plan + estimate + approve */}
+        {(phase === "proposed" || phase === "approving") && plan && (
+          <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+            {plan.chat && <p className="text-sm">{plan.chat}</p>}
+            <ul className="flex flex-col gap-1.5">
+              {plan.tasks.map((t, i) => (
+                <li key={i} className="flex items-center gap-2 text-sm">
+                  <span className="text-[var(--muted)]">•</span>
+                  <span className="min-w-0 flex-1 truncate">{t.title}</span>
+                  <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-[var(--muted)]">
+                    {t.complexity}
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="flex items-center justify-between border-t border-white/10 pt-3 text-sm">
+              <span className="text-[var(--muted)]">Cost</span>
+              <span className="font-semibold">
+                {freeEligible ? (
+                  <>
+                    <span className="text-[#4ade80]">Free</span>{" "}
+                    <span className="text-xs font-normal text-[var(--muted)]">
+                      ({balance?.freeWorkflowsLeft ?? 0} free left this month)
+                    </span>
+                  </>
+                ) : (
+                  <>≈ {plan.estimateCredits} credits</>
+                )}
+              </span>
+            </div>
+            {!freeEligible && balance && (
+              <p className="-mt-1 text-right text-xs text-[var(--muted)]">
+                You have {balance.credits} credits
+              </p>
+            )}
+
+            {needCredits && (
+              <p className="rounded-xl bg-red-400/10 p-2 text-center text-xs text-red-200">
+                Not enough credits · need {needCredits.need}, have {needCredits.have}. Top up below.
+              </p>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={discard}
+                disabled={phase === "approving"}
+                className="rounded-2xl border border-white/15 px-4 py-3 text-sm font-medium disabled:opacity-60"
+              >
+                Discard
+              </button>
+              <button
+                onClick={approve}
+                disabled={phase === "approving" || (!freeEligible && !canAfford)}
+                className="flex-1 rounded-2xl bg-[var(--accent)] px-4 py-3 font-medium text-white disabled:opacity-60"
+              >
+                {phase === "approving"
+                  ? "Starting…"
+                  : freeEligible
+                    ? "Approve & run (free)"
+                    : canAfford
+                      ? `Approve & run · ${plan.estimateCredits} credits`
+                      : "Top up to run"}
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       {tasks.length > 0 && (
