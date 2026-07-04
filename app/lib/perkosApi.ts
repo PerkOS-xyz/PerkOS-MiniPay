@@ -11,7 +11,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { firebaseDb } from "./firebase";
-import { authedJson } from "./apiClient";
+import { authedJson, authedFetch } from "./apiClient";
 
 // ─── Types (subset of PerkOS-Shared-Types) ───────────────────────────────────
 
@@ -206,7 +206,8 @@ export function launchAgent(input: LaunchAgentInput): Promise<LaunchAgentResult>
   });
 }
 
-/** Update the goal, then kick off one PM turn (plans → assigns → dispatches). */
+/** Update the goal, then kick off one PM turn (plans → assigns → dispatches).
+ *  Legacy direct-run path; MiniPay now uses the propose→approve workflow gate. */
 export async function giveGoal(
   address: string,
   projectId: string,
@@ -219,6 +220,146 @@ export async function giveGoal(
   await authedJson(`/projects/${projectId}/pm-turn`, {
     method: "POST",
     body: JSON.stringify({ trigger: "run-button" }),
+  });
+}
+
+// ─── Workflow gate (propose → estimate → approve → run) ───────────────────────
+
+export type WorkflowTask = {
+  title: string;
+  complexity: "simple" | "standard" | "complex";
+  weight: number;
+  agent: string;
+};
+
+export type ProposeResult =
+  | {
+      status: "proposed";
+      docId: string;
+      workflowState: "proposed";
+      estimateCredits: number;
+      tasks: WorkflowTask[];
+      chat: string;
+    }
+  | { status: "intake"; workflowState: "intake"; chat: string; docId: null };
+
+/** Ask the PM to PROPOSE a plan for a goal (no execution, no charge yet). */
+export async function proposeWorkflow(
+  projectId: string,
+  goal: string,
+): Promise<ProposeResult> {
+  const { data } = await authedJson<{ data: ProposeResult }>(
+    "/minipay/workflow/propose",
+    { method: "POST", body: JSON.stringify({ projectId, goal }) },
+  );
+  return data;
+}
+
+export type WorkflowView = {
+  docId: string;
+  workflowState: string;
+  status: string;
+  goal: string;
+  chat: string;
+  estimateCredits: number;
+  tasks: WorkflowTask[];
+  balance: { credits: number; freeWorkflowsLeft: number };
+  freeEligible: boolean;
+  canAfford: boolean;
+  tooLarge: boolean;
+};
+
+export async function getWorkflow(
+  projectId: string,
+  docId: string,
+): Promise<WorkflowView> {
+  const { data } = await authedJson<{ data: WorkflowView }>(
+    `/minipay/workflow/${projectId}/${docId}`,
+  );
+  return data;
+}
+
+export type ApproveResult =
+  | {
+      ok: true;
+      settlement: "exempt" | "free" | "credits";
+      estimateCredits: number;
+      created: number;
+      balanceAfter: number | null;
+      freeWorkflowsLeft: number | null;
+      alreadyApproved?: boolean;
+    }
+  | {
+      ok: false;
+      /** "INSUFFICIENT_CREDITS" | "WORKFLOW_TOO_LARGE" | "EMPTY_WORKFLOW" | … */
+      code: string;
+      need?: number;
+      have?: number;
+      estimateCredits?: number;
+      max?: number;
+    };
+
+/** Approve a proposed workflow → charge (or free) → materialize → run.
+ *  Returns the gate's structured outcome (402 INSUFFICIENT_CREDITS is a result,
+ *  not a thrown error, so the UI can offer a top-up). */
+export async function approveWorkflow(
+  projectId: string,
+  docId: string,
+): Promise<ApproveResult> {
+  const res = await authedFetch(`/minipay/workflow/${projectId}/${docId}/approve`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+  const body = (await res.json().catch(() => ({}))) as {
+    data?: ApproveResult;
+    error?: { code?: string; need?: number; have?: number; estimateCredits?: number; max?: number };
+  };
+  if (res.ok && body.data) return body.data;
+  const e = body.error ?? {};
+  return {
+    ok: false,
+    code: e.code ?? "APPROVE_FAILED",
+    need: e.need,
+    have: e.have,
+    estimateCredits: e.estimateCredits,
+    max: e.max,
+  };
+}
+
+// ─── Credits (MiniPay billing) ────────────────────────────────────────────────
+
+export type BillingMe = {
+  credits: number;
+  freeWorkflowsLeft: number;
+  freeWorkflowsPerMonth: number;
+  membershipUntil: string | null;
+  membershipActive: boolean;
+  exempt: boolean;
+  enrolled: boolean;
+  creditUsd: number;
+};
+
+export async function getBillingMe(): Promise<BillingMe> {
+  return authedJson<BillingMe>("/minipay/billing/me");
+}
+
+export type CreditPacks = {
+  creditUsd: number;
+  packs: Array<{ usd: number; credits: number }>;
+  membership: { usd: number; credits: number };
+};
+
+export async function getPacks(): Promise<CreditPacks> {
+  return authedJson<CreditPacks>("/minipay/billing/packs");
+}
+
+/** Verify a cUSD transfer (by tx hash) and credit the matching pack. */
+export async function depositCelo(
+  txHash: string,
+): Promise<{ ok: boolean; credits: number; added: number; amountUsd: number }> {
+  return authedJson("/minipay/billing/deposit-celo", {
+    method: "POST",
+    body: JSON.stringify({ txHash }),
   });
 }
 
