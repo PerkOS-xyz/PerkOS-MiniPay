@@ -1,21 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { useAccount, useReadContract } from "wagmi";
 import { celo } from "wagmi/chains";
 import { formatUnits } from "viem";
 
 import { CUSD, USDC, USDT, type TokenInfo } from "../lib/tokenAddresses";
 import { detectMiniPay } from "../lib/useIsMiniPay";
+import { DynamicWalletContext } from "../lib/dynamicWallet";
 
 /**
  * On-screen access diagnostic (like PerkOS App's debug log) — confirms the
- * mini-app actually reached the user's wallet inside the MiniPay webview, and
- * shows WHERE their money is. If MiniPay's home shows a balance but the app
- * reads 0 cUSD, this reveals the funds are in USDT/USDC (6-dec), not cUSD
- * (18-dec), or that a different address was injected than expected.
+ * mini-app actually reached the user's wallet, and shows WHERE their money is.
  *
- * Collapsed by default (a one-line status). Read-only; no side effects.
+ * Environment-aware, because the wallet is resolved differently per host:
+ *   - MiniPay webview: an injected wallet is present by default (wagmi's
+ *     injected connector, implicit connect — no button).
+ *   - Regular browser: NO wallet until the user connects one via Dynamic
+ *     (bridgeless — wagmi stays disconnected on purpose; the address comes from
+ *     DynamicWalletContext).
+ * So we report the ACTIVE source's connection, not just wagmi's (which reads
+ * "disconnected" in the browser even when Dynamic is connected).
+ *
+ * Balances read via the public Celo transport at the resolved address, so they
+ * work in both hosts. Collapsed by default; read-only, no side effects.
  */
 
 const ERC20_BALANCE_ABI = [
@@ -51,9 +59,17 @@ function shortAddr(a?: string): string {
 export function DiagnosticPanel({ address }: { address?: string }) {
   const [open, setOpen] = useState(false);
   const wagmi = useAccount();
-  const account = (address ?? wagmi.address) as `0x${string}` | undefined;
+  const dyn = useContext(DynamicWalletContext);
 
   const isMiniPay = detectMiniPay();
+  const env = isMiniPay ? "MiniPay" : "browser";
+  // The wallet source that actually owns the wallet in this host.
+  const source = isMiniPay ? "wagmi injected" : dyn ? "Dynamic" : "none";
+  // Active connection state (Dynamic in the browser, wagmi in MiniPay).
+  const connected = isMiniPay ? wagmi.isConnected : Boolean(dyn?.isConnected);
+  const sourceAddr = isMiniPay ? wagmi.address : dyn?.address;
+  const account = (address ?? sourceAddr) as `0x${string}` | undefined;
+
   const eth =
     typeof window !== "undefined"
       ? (window as unknown as { ethereum?: Record<string, unknown> }).ethereum
@@ -73,6 +89,10 @@ export function DiagnosticPanel({ address }: { address?: string }) {
 
   const hasAccess = Boolean(account);
   const balancesReady = cusd.value !== undefined || usdc.value !== undefined || usdt.value !== undefined;
+  // Browser + no wallet connected yet is EXPECTED (not an error) — user must connect.
+  const needsConnect = !isMiniPay && !connected && !account;
+
+  const dot = hasAccess ? "text-[#4ade80]" : needsConnect ? "text-[var(--muted)]" : "text-amber-300";
 
   return (
     <section className="rounded-2xl border border-white/10 bg-black/30 text-xs">
@@ -81,13 +101,11 @@ export function DiagnosticPanel({ address }: { address?: string }) {
         className="flex w-full items-center justify-between gap-2 px-3 py-2"
       >
         <span className="flex items-center gap-2">
-          <span className={hasAccess ? "text-[#4ade80]" : "text-amber-300"}>
-            {hasAccess ? "●" : "○"}
-          </span>
+          <span className={dot}>{hasAccess ? "●" : "○"}</span>
           <span className="font-medium">Diagnostics</span>
           <span className="text-[var(--muted)]">
-            {isMiniPay ? "MiniPay" : "browser"} · {shortAddr(account)}
-            {balancesReady ? ` · $${total.toFixed(2)}` : ""}
+            {env} · {needsConnect ? "connect a wallet" : shortAddr(account)}
+            {balancesReady && hasAccess ? ` · $${total.toFixed(2)}` : ""}
           </span>
         </span>
         <span className="text-[var(--muted)]">{open ? "▲" : "▼"}</span>
@@ -95,32 +113,51 @@ export function DiagnosticPanel({ address }: { address?: string }) {
 
       {open && (
         <div className="flex flex-col gap-2 border-t border-white/10 px-3 py-3 font-mono">
-          <Row k="MiniPay host" v={isMiniPay ? "yes (isMiniPay)" : "no"} />
-          <Row k="window.ethereum" v={eth ? "present" : "MISSING"} tone={eth ? "ok" : "warn"} />
-          <Row k="provider flags" v={providerFlags} />
+          <Row k="environment" v={env} tone="ok" />
+          <Row k="wallet source" v={source} tone={source === "none" ? "warn" : "ok"} />
           <Row
-            k="wallet connected"
-            v={wagmi.isConnected ? "yes" : "no"}
-            tone={wagmi.isConnected ? "ok" : "warn"}
+            k="connected"
+            v={connected ? "yes" : needsConnect ? "no — connect in browser" : "no"}
+            tone={connected ? "ok" : needsConnect ? undefined : "warn"}
           />
-          <Row k="connector" v={wagmi.connector?.name ?? "—"} />
-          <Row k="chain id" v={wagmi.chainId ? String(wagmi.chainId) : "—"} tone={wagmi.chainId === celo.id ? "ok" : wagmi.chainId ? "warn" : undefined} />
           <Row k="session addr" v={address ?? "—"} wrap />
+
+          <div className="mt-1 border-t border-white/10 pt-2 text-[var(--muted)]">Host details</div>
+          <Row k="isMiniPay" v={isMiniPay ? "yes" : "no"} />
+          <Row k="window.ethereum" v={eth ? "present" : "none"} tone={isMiniPay && !eth ? "warn" : undefined} />
+          <Row k="provider flags" v={providerFlags} />
+          <Row k="wagmi connected" v={wagmi.isConnected ? "yes" : "no"} />
+          <Row k="wagmi connector" v={wagmi.connector?.name ?? "—"} />
+          <Row
+            k="wagmi chain"
+            v={wagmi.chainId ? String(wagmi.chainId) : "—"}
+            tone={wagmi.chainId === celo.id ? "ok" : wagmi.chainId ? "warn" : undefined}
+          />
           <Row k="wagmi addr" v={wagmi.address ?? "—"} wrap />
+          <Row k="dynamic connected" v={dyn ? (dyn.isConnected ? "yes" : "no") : "n/a (not browser)"} />
+          <Row k="dynamic addr" v={dyn?.address ?? "—"} wrap />
 
           <div className="mt-1 border-t border-white/10 pt-2 text-[var(--muted)]">
             Balances at {shortAddr(account)} (Celo)
           </div>
-          <Bal label="cUSD (18d)" b={cusd} />
-          <Bal label="USDT (6d)" b={usdt} />
-          <Bal label="USDC (6d)" b={usdc} />
-          <Row k="total stable" v={balancesReady ? `$${total.toFixed(2)}` : "loading…"} tone="ok" />
-
-          {total === 0 && balancesReady && hasAccess && (
-            <p className="mt-1 rounded-lg bg-amber-300/10 p-2 text-amber-200/90">
-              This address holds 0 in all three stablecoins. If MiniPay shows a balance, the injected
-              address differs from the funded one (or it&apos;s a token we don&apos;t read yet).
+          {needsConnect ? (
+            <p className="rounded-lg bg-white/5 p-2 text-[var(--muted)]">
+              No wallet connected. In a browser, connect one first; inside MiniPay the wallet is
+              injected automatically.
             </p>
+          ) : (
+            <>
+              <Bal label="cUSD (18d)" b={cusd} />
+              <Bal label="USDT (6d)" b={usdt} />
+              <Bal label="USDC (6d)" b={usdc} />
+              <Row k="total stable" v={balancesReady ? `$${total.toFixed(2)}` : "loading…"} tone="ok" />
+              {total === 0 && balancesReady && hasAccess && (
+                <p className="mt-1 rounded-lg bg-amber-300/10 p-2 text-amber-200/90">
+                  This address holds 0 in all three stablecoins. If MiniPay shows a balance, the
+                  injected address differs from the funded one (or it&apos;s a token we don&apos;t read yet).
+                </p>
+              )}
+            </>
           )}
         </div>
       )}
