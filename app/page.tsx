@@ -2,12 +2,14 @@
 
 import { useContext } from "react";
 import nextDynamic from "next/dynamic";
+import { useConnect } from "wagmi";
 import { useMiniPayHost } from "./lib/useIsMiniPay";
 import { DynamicWalletContext } from "./lib/dynamicWallet";
 import { useWalletSession, type WalletSessionStatus } from "./lib/useWalletSession";
 import { Home } from "./components/Home";
 import { Brand } from "./components/Brand";
 import { ConnectButton } from "./components/ConnectButton";
+import { MiniPayLanding } from "./components/landing/MiniPayLanding";
 
 // Lazy — pulls @dynamic-labs only in the browser host (the chunk is shared
 // with DynamicProviders, which is mounted under the same condition).
@@ -16,12 +18,28 @@ const DynamicSignInButton = nextDynamic(
   { ssr: false },
 );
 
+// Lazy for the same reason: the Dynamic-wired landing pulls @dynamic-labs.
+const LandingWithDynamic = nextDynamic(
+  () => import("./components/landing/LandingWithDynamic").then((m) => m.LandingWithDynamic),
+  { ssr: false },
+);
+
 export default function Page() {
   const isMiniPayHost = useMiniPayHost();
   const { status, address, error, isConnected } = useWalletSession();
+  const dyn = useContext(DynamicWalletContext);
+  const { connect, connectors } = useConnect();
 
   if (status === "signed-in" && address) {
     return <Home address={address} />;
+  }
+
+  // Regular browser, signed-out, ready to connect → the marketing landing.
+  // (MiniPay webview and mid-connect states fall through to the minimal gate.)
+  if (isMiniPayHost === false && status === "signed-out" && !isConnected) {
+    if (dyn) return <LandingWithDynamic />;
+    const c = connectors.find((x) => x.id === "injected") ?? connectors[0];
+    return <MiniPayLanding onGetStarted={() => c && connect({ connector: c })} />;
   }
 
   return (
