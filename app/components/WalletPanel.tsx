@@ -23,7 +23,7 @@ const ERC20_BALANCE_ABI = [
 // transfer landed there before crediting.
 const PAYMENT_ADDRESS = (process.env.NEXT_PUBLIC_PAYMENT_ADDRESS ?? "") as `0x${string}`;
 
-export function WalletPanel({ address }: { address: string }) {
+export function WalletPanel({ address, compact = false }: { address: string; compact?: boolean }) {
   const account = address as `0x${string}`;
   const { pay, ready } = usePayCusd();
   const [busy, setBusy] = useState(false);
@@ -125,18 +125,26 @@ export function WalletPanel({ address }: { address: string }) {
     <section className="rounded-2xl border border-white/10 bg-white/5 p-4">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs text-[var(--muted)]">Your credits</p>
-          <p className="text-2xl font-semibold">
-            {billing ? billing.credits : "—"} <span className="text-sm font-normal">credits</span>
-          </p>
-          {billing && (
-            <p className="mt-0.5 text-xs text-[var(--muted)]">
-              {billing.exempt
-                ? "Sponsored — runs are free for you"
-                : billing.membershipActive
-                  ? "Member · included credits monthly"
-                  : `${billing.freeWorkflowsLeft}/${billing.freeWorkflowsPerMonth} free workflows left this month`}
-            </p>
+          {/* Compact = the dashboard's Overview already owns the credits/free
+              numbers, so we don't repeat them here — just a buy affordance. */}
+          {compact ? (
+            <p className="text-sm font-medium">Buy credits</p>
+          ) : (
+            <>
+              <p className="text-xs text-[var(--muted)]">Your credits</p>
+              <p className="text-2xl font-semibold">
+                {billing ? billing.credits : "—"} <span className="text-sm font-normal">credits</span>
+              </p>
+              {billing && (
+                <p className="mt-0.5 text-xs text-[var(--muted)]">
+                  {billing.exempt
+                    ? "Sponsored, runs are free for you"
+                    : billing.membershipActive
+                      ? "Member, included credits monthly"
+                      : `${billing.freeWorkflowsLeft}/${billing.freeWorkflowsPerMonth} free workflows left this month`}
+                </p>
+              )}
+            </>
           )}
         </div>
         <div className="text-right">
