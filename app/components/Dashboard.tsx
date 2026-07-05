@@ -10,6 +10,7 @@ import {
   type Template,
 } from "../lib/perkosApi";
 import { glyphFor } from "../lib/templateMeta";
+import { collectPendingTasks, countDoneTasks, toolTaskSummary } from "../lib/dashboardStats";
 import { WalletPanel } from "./WalletPanel";
 import { DiagnosticPanel } from "./DiagnosticPanel";
 
@@ -36,8 +37,6 @@ type Props = {
   onAddTool: () => void;
 };
 
-const PENDING: Task["status"][] = ["In progress", "Review", "Backlog"];
-
 export function Dashboard({
   address,
   projects,
@@ -54,14 +53,9 @@ export function Dashboard({
   const isOnline = (p: Project) =>
     (p.agentIds ?? []).some((n) => agents.find((a) => a.name === n && agentStatus(a) === "online"));
 
-  const allTasks = projects.flatMap((p) =>
-    (tasksByProject.get(p.id) ?? []).map((t) => ({ ...t, project: p })),
-  );
-  const tasksDone = allTasks.filter((t) => t.status === "Done").length;
-  const pending = allTasks
-    .filter((t) => PENDING.includes(t.status))
-    .sort((a, b) => PENDING.indexOf(a.status) - PENDING.indexOf(b.status))
-    .slice(0, 5);
+  const tasksDone = countDoneTasks(tasksByProject);
+  const pending = collectPendingTasks(projects, tasksByProject, 5);
+  const projectById = new Map(projects.map((p) => [p.id, p]));
   const onlineCount = projects.filter(isOnline).length;
 
   const credits = billing?.credits ?? 0;
@@ -103,24 +97,27 @@ export function Dashboard({
         {pending.length === 0 ? (
           <EmptyCard text="Nothing queued. Give a tool a goal to get started." />
         ) : (
-          pending.map((t) => (
+          pending.map((t) => {
+            const proj = projectById.get(t.projectId);
+            return (
             <button
               key={t.id}
-              onClick={() => onOpenProject(t.project.id)}
+              onClick={() => onOpenProject(t.projectId)}
               className="flex min-h-[56px] items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-left active:scale-[0.99]"
             >
               <StatusChip status={t.status} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium">{t.name}</span>
                 <span className="block truncate text-xs text-[var(--muted)]">
-                  {templateFor(t.project)?.name ?? t.project.name}
+                  {(proj && templateFor(proj)?.name) ?? proj?.name ?? t.projectId}
                 </span>
               </span>
               <span className="shrink-0 text-lg text-[var(--muted)]" aria-hidden>
                 ›
               </span>
             </button>
-          ))
+            );
+          })
         )}
       </section>
 
@@ -130,8 +127,7 @@ export function Dashboard({
         {projects.map((p) => {
           const tpl = templateFor(p);
           const tasks = tasksByProject.get(p.id) ?? [];
-          const queued = tasks.filter((t) => PENDING.includes(t.status)).length;
-          const done = tasks.filter((t) => t.status === "Done").length;
+          const { queued, done } = toolTaskSummary(tasks);
           const summary =
             queued > 0
               ? `${queued} in progress`
