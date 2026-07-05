@@ -162,10 +162,18 @@ export async function listTasks(address: string, projectId: string): Promise<Tas
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Task, "id">) }));
 }
 
-export async function listActivity(
-  address: string,
-  max = 30,
-): Promise<{ id: string; actor: string; verb: string; object: string; detail?: string }[]> {
+export type ActivityEvent = {
+  id: string;
+  actor: string;
+  verb: string;
+  object: string;
+  detail?: string;
+  projectId?: string;
+  /** epoch ms (0 if unknown) — for relative-time display. */
+  ts: number;
+};
+
+export async function listActivity(address: string, max = 30): Promise<ActivityEvent[]> {
   try {
     const snap = await getDocs(
       query(
@@ -174,7 +182,25 @@ export async function listActivity(
         limit(max),
       ),
     );
-    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, string>) })) as never;
+    return snap.docs.map((d) => {
+      const x = d.data() as Record<string, unknown>;
+      const raw = x.ts as { toMillis?: () => number } | number | undefined;
+      const ts =
+        raw && typeof (raw as { toMillis?: () => number }).toMillis === "function"
+          ? (raw as { toMillis: () => number }).toMillis()
+          : typeof raw === "number"
+            ? raw
+            : 0;
+      return {
+        id: d.id,
+        actor: typeof x.actor === "string" ? x.actor : "",
+        verb: typeof x.verb === "string" ? x.verb : "",
+        object: typeof x.object === "string" ? x.object : "",
+        detail: typeof x.detail === "string" ? x.detail : undefined,
+        projectId: typeof x.projectId === "string" ? x.projectId : undefined,
+        ts,
+      };
+    });
   } catch {
     return [];
   }

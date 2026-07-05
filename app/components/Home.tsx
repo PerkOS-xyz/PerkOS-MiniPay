@@ -4,18 +4,23 @@ import { useCallback, useEffect, useState } from "react";
 import {
   agentStatus,
   approveWorkflow,
+  getBillingMe,
   getWorkflow,
+  listActivity,
   listAgents,
   listProjects,
   listTasks,
   proposeWorkflow,
+  type ActivityEvent,
   type Agent,
+  type BillingMe,
   type Project,
   type Task,
   type Template,
   type WorkflowTask,
 } from "../lib/perkosApi";
 import { listTemplates } from "../lib/perkosApi";
+import { Dashboard } from "./Dashboard";
 import { glyphFor } from "../lib/templateMeta";
 import { useIsMiniPay } from "../lib/useIsMiniPay";
 import { useLandingNav } from "../lib/landingNav";
@@ -26,7 +31,14 @@ import { Brand } from "./Brand";
 import { AgentChat } from "./AgentChat";
 import { TemplateGallery } from "./TemplateGallery";
 
-type Loaded = { agents: Agent[]; projects: Project[]; templates: Template[] };
+type Loaded = {
+  agents: Agent[];
+  projects: Project[];
+  templates: Template[];
+  billing: BillingMe | null;
+  activity: ActivityEvent[];
+  tasksByProject: Map<string, Task[]>;
+};
 
 export function Home({ address }: { address: string }) {
   // Logout is browser-only: inside MiniPay the wallet is the host identity
@@ -43,12 +55,20 @@ export function Home({ address }: { address: string }) {
 
   const load = useCallback(async () => {
     try {
-      const [agents, projects, templates] = await Promise.all([
+      const [agents, projects, templates, billing, activity] = await Promise.all([
         listAgents(address),
         listProjects(address),
         listTemplates().catch(() => [] as Template[]),
+        getBillingMe().catch(() => null),
+        listActivity(address, 8).catch(() => [] as ActivityEvent[]),
       ]);
-      setData({ agents, projects, templates });
+      // Aggregate tasks across the user's tools for the dashboard's ToDo +
+      // per-tool summaries (listTasks is per-project).
+      const taskLists = await Promise.all(
+        projects.map((p) => listTasks(address, p.id).catch(() => [] as Task[])),
+      );
+      const tasksByProject = new Map(projects.map((p, i) => [p.id, taskLists[i] ?? []]));
+      setData({ agents, projects, templates, billing, activity, tasksByProject });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't load your tools");
     }
@@ -166,55 +186,21 @@ export function Home({ address }: { address: string }) {
     );
   }
 
-  // --- My tools (activated projects) ---------------------------------------
+  // --- Dashboard (default view once tools are activated) -------------------
   return (
     <main className="flex flex-col gap-5 px-5 py-7">
       {header}
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">Your tools</h1>
-        <p className="text-sm text-[var(--muted)]">Tap a tool to use it.</p>
-      </div>
-      <WalletPanel address={address} />
-      <DiagnosticPanel address={address} />
-      <section className="flex flex-col gap-3">
-        {data.projects.map((p) => {
-          const tpl = templateFor(p);
-          const online = (p.agentIds ?? []).some((n) =>
-            data.agents.find((a) => a.name === n && agentStatus(a) === "online"),
-          );
-          return (
-            <button
-              key={p.id}
-              onClick={() => setOpenProjectId(p.id)}
-              className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-left active:scale-[0.99]"
-            >
-              <span
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-lg"
-                style={{ background: "linear-gradient(135deg,#8b5cf6,#ec4899)" }}
-                aria-hidden
-              >
-                {tpl ? glyphFor(tpl.id) : "✦"}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="font-medium">{tpl?.name ?? p.name}</p>
-                <p className="text-xs text-[var(--muted)]">{tpl?.tagline ?? `${p.agentIds?.length ?? 0} helpers`}</p>
-              </div>
-              <span
-                className="h-2.5 w-2.5 shrink-0 rounded-full"
-                style={{ background: online ? "#4ade80" : "#9ca3af" }}
-                aria-label={online ? "online" : "waking"}
-              />
-              <span className="shrink-0 text-lg text-[var(--muted)]" aria-hidden>›</span>
-            </button>
-          );
-        })}
-      </section>
-      <button
-        onClick={() => setView("gallery")}
-        className="rounded-2xl border border-dashed border-white/20 px-4 py-3 text-sm font-medium text-[var(--muted)]"
-      >
-        + Add another tool
-      </button>
+      <Dashboard
+        address={address}
+        projects={data.projects}
+        agents={data.agents}
+        templates={data.templates}
+        tasksByProject={data.tasksByProject}
+        billing={data.billing}
+        activity={data.activity}
+        onOpenProject={setOpenProjectId}
+        onAddTool={() => setView("gallery")}
+      />
       {error && <p className="text-xs text-red-300">{error}</p>}
     </main>
   );
