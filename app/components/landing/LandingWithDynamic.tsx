@@ -10,7 +10,7 @@ import { MiniPayLanding } from "./MiniPayLanding";
  * @dynamic-labs and throws unless DynamicContextProvider is mounted — which it
  * is exactly when DynamicWalletContext is non-null (the browser path).
  */
-export function LandingWithDynamic() {
+export function LandingWithDynamic({ onEnterApp }: { onEnterApp?: () => void }) {
   const { setShowAuthFlow } = useDynamicContext();
-  return <MiniPayLanding onGetStarted={() => setShowAuthFlow(true)} />;
+  return <MiniPayLanding onGetStarted={() => setShowAuthFlow(true)} onEnterApp={onEnterApp} />;
 }

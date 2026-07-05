@@ -20,6 +20,7 @@ export type LandingCopy = {
     subhead: string;
     ctaPrimary: string;
     ctaSecondary: string;
+    enterApp: string;
     trust: string[];
   };
   problem: { title: string; items: string[] };
@@ -50,6 +51,7 @@ const en: LandingCopy = {
       "It logs your sales, drafts your invoices, and chases late payments, so you don't have to. You approve every step, and your money never leaves your wallet.",
     ctaPrimary: "Get started free",
     ctaSecondary: "See what it can do",
+    enterApp: "Open the app",
     trust: ["Free to start", "No seed phrase", "Money stays in your wallet"],
   },
   problem: {
@@ -121,6 +123,7 @@ const es: LandingCopy = {
       "Registra tus ventas, prepara tus facturas y les recuerda a quienes te deben, para que no tengas que hacerlo tú. Tú apruebas cada paso, y tu dinero nunca sale de tu wallet.",
     ctaPrimary: "Empieza gratis",
     ctaSecondary: "Mira lo que hace",
+    enterApp: "Abrir la app",
     trust: ["Gratis para empezar", "Sin frase semilla", "Tu dinero se queda en tu wallet"],
   },
   problem: {

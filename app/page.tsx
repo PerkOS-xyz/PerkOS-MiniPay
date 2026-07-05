@@ -1,10 +1,11 @@
 "use client";
 
-import { useContext } from "react";
+import { useContext, useMemo, useState, type ReactNode } from "react";
 import nextDynamic from "next/dynamic";
 import { useConnect } from "wagmi";
 import { useMiniPayHost } from "./lib/useIsMiniPay";
 import { DynamicWalletContext } from "./lib/dynamicWallet";
+import { LandingNavContext } from "./lib/landingNav";
 import { useWalletSession, type WalletSessionStatus } from "./lib/useWalletSession";
 import { Home } from "./components/Home";
 import { Brand } from "./components/Brand";
@@ -29,34 +30,56 @@ export default function Page() {
   const { status, address, error, isConnected } = useWalletSession();
   const dyn = useContext(DynamicWalletContext);
   const { connect, connectors } = useConnect();
-
-  if (status === "signed-in" && address) {
-    return <Home address={address} />;
-  }
-
-  // Regular browser, signed-out, ready to connect → the marketing landing.
-  // (MiniPay webview and mid-connect states fall through to the minimal gate.)
-  if (isMiniPayHost === false && status === "signed-out" && !isConnected) {
-    if (dyn) return <LandingWithDynamic />;
-    const c = connectors.find((x) => x.id === "injected") ?? connectors[0];
-    return <MiniPayLanding onGetStarted={() => c && connect({ connector: c })} />;
-  }
-
-  return (
-    <main className="flex min-h-[100dvh] flex-col items-center justify-center gap-3 px-6 text-center">
-      <Brand className="mb-2 justify-center" />
-      <h1 className="text-2xl font-semibold">Money &amp; customer tools</h1>
-      <p className="text-sm text-[var(--muted)]">
-        Simple helpers for your business, inside your wallet. Pay only for the work.
-      </p>
-      <GateAction
-        status={status}
-        isMiniPayHost={isMiniPayHost}
-        isConnected={isConnected}
-        error={error}
-      />
-    </main>
+  // "Click the logo → go to the landing" — works from any state (signed-in,
+  // inside MiniPay, or signed-out) by forcing the landing view here.
+  const [forceLanding, setForceLanding] = useState(false);
+  const nav = useMemo(
+    () => ({ goToLanding: () => setForceLanding(true), goToApp: () => setForceLanding(false) }),
+    [],
   );
+
+  const wagmiGetStarted = () => {
+    const c = connectors.find((x) => x.id === "injected") ?? connectors[0];
+    if (c) connect({ connector: c });
+  };
+  // The landing, wired to the right connect. `onEnterApp` (when signed-in) turns
+  // the CTA into "Open the app" and returns to the app instead of connecting.
+  const renderLanding = (onEnterApp?: () => void) =>
+    dyn ? (
+      <LandingWithDynamic onEnterApp={onEnterApp} />
+    ) : (
+      <MiniPayLanding onGetStarted={wagmiGetStarted} onEnterApp={onEnterApp} />
+    );
+
+  let content: ReactNode;
+  if (forceLanding) {
+    // Reached via the logo. If a session exists, offer "Open the app" back.
+    content = renderLanding(status === "signed-in" && address ? nav.goToApp : undefined);
+  } else if (status === "signed-in" && address) {
+    content = <Home address={address} />;
+  } else if (isMiniPayHost === false && status === "signed-out" && !isConnected) {
+    // Regular browser, signed-out → the marketing landing.
+    content = renderLanding();
+  } else {
+    // MiniPay webview connecting / mid-connect / errors → minimal gate.
+    content = (
+      <main className="flex min-h-[100dvh] flex-col items-center justify-center gap-3 px-6 text-center">
+        <Brand className="mb-2 justify-center" />
+        <h1 className="text-2xl font-semibold">Money &amp; customer tools</h1>
+        <p className="text-sm text-[var(--muted)]">
+          Simple helpers for your business, inside your wallet. Pay only for the work.
+        </p>
+        <GateAction
+          status={status}
+          isMiniPayHost={isMiniPayHost}
+          isConnected={isConnected}
+          error={error}
+        />
+      </main>
+    );
+  }
+
+  return <LandingNavContext.Provider value={nav}>{content}</LandingNavContext.Provider>;
 }
 
 function GateAction({

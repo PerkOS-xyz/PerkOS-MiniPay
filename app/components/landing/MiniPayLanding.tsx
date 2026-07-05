@@ -21,9 +21,14 @@ import {
  */
 export function MiniPayLanding({
   onGetStarted,
+  onEnterApp,
   busy = false,
 }: {
   onGetStarted: () => void;
+  /** When set (the viewer already has a session, e.g. reached the landing via
+   *  the header logo while signed in), the primary CTA becomes "Open the app"
+   *  and returns them to the app instead of starting a connect. */
+  onEnterApp?: () => void;
   busy?: boolean;
 }) {
   const [locale, setLocale] = useState<Locale>("en");
@@ -62,13 +67,15 @@ export function MiniPayLanding({
   const scrollTo = (id: string) =>
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
+  // Signed-in viewers (reached the landing via the logo) get "Open the app";
+  // everyone else gets the connect CTA with the section's own label.
   const PrimaryCta = ({ label }: { label: string }) => (
     <button
-      onClick={onGetStarted}
+      onClick={onEnterApp ?? onGetStarted}
       disabled={busy}
       className="w-full rounded-2xl bg-[var(--accent)] px-5 py-3.5 font-medium text-white transition-opacity active:opacity-80 disabled:opacity-60"
     >
-      {busy ? "…" : label}
+      {busy ? "…" : onEnterApp ? t.hero.enterApp : label}
     </button>
   );
 
@@ -76,7 +83,13 @@ export function MiniPayLanding({
     <main className="flex flex-col pb-24">
       {/* Header */}
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/10 bg-[var(--background)]/90 px-5 py-3 backdrop-blur">
-        <Brand />
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          aria-label="Top"
+          className="active:opacity-80"
+        >
+          <Brand />
+        </button>
         <div className="flex items-center gap-1 text-xs">
           {LOCALES.map((l) => (
             <button
