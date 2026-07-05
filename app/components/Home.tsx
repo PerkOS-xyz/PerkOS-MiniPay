@@ -18,8 +18,10 @@ import {
 import { listTemplates } from "../lib/perkosApi";
 import { glyphFor } from "../lib/templateMeta";
 import { useIsMiniPay } from "../lib/useIsMiniPay";
+import { useLandingNav } from "../lib/landingNav";
 import { useWalletSession } from "../lib/useWalletSession";
 import { WalletPanel } from "./WalletPanel";
+import { DiagnosticPanel } from "./DiagnosticPanel";
 import { Brand } from "./Brand";
 import { AgentChat } from "./AgentChat";
 import { TemplateGallery } from "./TemplateGallery";
@@ -31,6 +33,7 @@ export function Home({ address }: { address: string }) {
   // and connection is implicit (rule C1) — no logout affordance there.
   const isMiniPay = useIsMiniPay();
   const { logout } = useWalletSession();
+  const { goToLanding } = useLandingNav();
 
   const [data, setData] = useState<Loaded | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +97,9 @@ export function Home({ address }: { address: string }) {
 
   const header = (
     <header className="flex items-center justify-between">
-      <Brand />
+      <button onClick={goToLanding} aria-label="Home" className="active:opacity-80">
+        <Brand />
+      </button>
       {!isMiniPay && (
         <button
           onClick={logout}
@@ -140,6 +145,7 @@ export function Home({ address }: { address: string }) {
           </p>
         </div>
         <WalletPanel address={address} />
+        <DiagnosticPanel address={address} />
         <TemplateGallery
           activeTemplateIds={activeIds}
           onActivated={(projectId) => {
@@ -169,6 +175,7 @@ export function Home({ address }: { address: string }) {
         <p className="text-sm text-[var(--muted)]">Tap a tool to use it.</p>
       </div>
       <WalletPanel address={address} />
+      <DiagnosticPanel address={address} />
       <section className="flex flex-col gap-3">
         {data.projects.map((p) => {
           const tpl = templateFor(p);
