@@ -10,6 +10,7 @@ import { useWalletSession, type WalletSessionStatus } from "./lib/useWalletSessi
 import { Home } from "./components/Home";
 import { Brand } from "./components/Brand";
 import { ConnectButton } from "./components/ConnectButton";
+import { AccessGate } from "./components/AccessGate";
 import { MiniPayLanding } from "./components/landing/MiniPayLanding";
 
 // Lazy — pulls @dynamic-labs only in the browser host (the chunk is shared
@@ -74,6 +75,7 @@ export default function Page() {
           isMiniPayHost={isMiniPayHost}
           isConnected={isConnected}
           error={error}
+          address={address}
         />
       </main>
     );
@@ -87,17 +89,28 @@ function GateAction({
   isMiniPayHost,
   isConnected,
   error,
+  address,
 }: {
   status: WalletSessionStatus;
   isMiniPayHost: boolean | null;
   isConnected: boolean;
   error: string | null;
+  address?: string;
 }) {
   const note = (text: string, danger = false) => (
     <p className={`mt-2 max-w-xs text-xs ${danger ? "text-red-300" : "text-[var(--muted)]"}`}>{text}</p>
   );
 
-  if (status === "not-allowlisted") return note("This wallet isn't on the access list yet.");
+  if (status === "not-allowlisted") {
+    // Wallet connected but not on the allowlist → offer the access-code /
+    // request-access form (needs the address to submit). Fall back to a plain
+    // note if the address somehow isn't resolved yet.
+    return address ? (
+      <AccessGate address={address} />
+    ) : (
+      note("This wallet isn't on the access list yet.")
+    );
+  }
   if (status === "error") return note(`Sign-in failed: ${error ?? "unknown error"}`, true);
   if (isConnected || status === "syncing") {
     return note(
