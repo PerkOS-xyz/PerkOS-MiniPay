@@ -26,10 +26,10 @@ import { useIsMiniPay } from "../lib/useIsMiniPay";
 import { useLandingNav } from "../lib/landingNav";
 import { useWalletSession } from "../lib/useWalletSession";
 import { WalletPanel } from "./WalletPanel";
-import { DiagnosticPanel } from "./DiagnosticPanel";
 import { Brand } from "./Brand";
 import { AgentChat } from "./AgentChat";
 import { TemplateGallery } from "./TemplateGallery";
+import { NeedToday } from "./NeedToday";
 
 type Loaded = {
   agents: Agent[];
@@ -52,6 +52,9 @@ export function Home({ address }: { address: string }) {
   const [view, setView] = useState<"list" | "gallery">("list");
   const [openProjectId, setOpenProjectId] = useState<string | null>(null);
   const [chatAgent, setChatAgent] = useState<string | null>(null);
+  // Carried in from the first-run "what do you need?" box so the tool opens
+  // with the merchant's own words already in the goal field.
+  const [initialGoal, setInitialGoal] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -140,7 +143,11 @@ export function Home({ address }: { address: string }) {
         agents={data.agents}
         template={templateFor(openProject)}
         roleLabel={roleLabel}
-        onBack={() => setOpenProjectId(null)}
+        initialGoal={initialGoal}
+        onBack={() => {
+          setOpenProjectId(null);
+          setInitialGoal(null);
+        }}
         onOpenChat={setChatAgent}
         onReload={load}
       />
@@ -151,21 +158,32 @@ export function Home({ address }: { address: string }) {
     data.projects.map((p) => (p as Project & { templateId?: string }).templateId).filter(Boolean) as string[],
   );
 
-  // --- Gallery (browse & add tools) ----------------------------------------
-  if (view === "gallery" || data.projects.length === 0) {
+  // --- First run: one question, speak-or-type + a few common chores --------
+  if (data.projects.length === 0) {
+    return (
+      <NeedToday
+        onStarted={(projectId, goal) => {
+          setInitialGoal(goal ?? null);
+          setView("list");
+          setOpenProjectId(projectId);
+          load();
+        }}
+      />
+    );
+  }
+
+  // --- Gallery: add another helper (reached via "Add a helper") -------------
+  if (view === "gallery") {
     return (
       <main className="flex flex-col gap-5 px-5 py-7">
         {header}
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold">
-            {data.projects.length === 0 ? "Pick a tool to start" : "Add a tool"}
-          </h1>
+          <h1 className="text-2xl font-semibold">Add a helper</h1>
           <p className="text-sm text-[var(--muted)]">
-            Simple money and customer helpers for your business — you pay only for the work.
+            More money and customer helpers for your business — you only pay for the work.
           </p>
         </div>
         <WalletPanel address={address} />
-        <DiagnosticPanel address={address} />
         <TemplateGallery
           activeTemplateIds={activeIds}
           onActivated={(projectId) => {
@@ -174,14 +192,12 @@ export function Home({ address }: { address: string }) {
             load();
           }}
         />
-        {data.projects.length > 0 && (
-          <button
-            onClick={() => setView("list")}
-            className="text-sm text-[var(--muted)] underline-offset-2 hover:underline"
-          >
-            ‹ Back to my tools
-          </button>
-        )}
+        <button
+          onClick={() => setView("list")}
+          className="text-sm text-[var(--muted)] underline-offset-2 hover:underline"
+        >
+          ‹ Back to my team
+        </button>
       </main>
     );
   }
@@ -214,6 +230,7 @@ function ProjectView({
   agents,
   template,
   roleLabel,
+  initialGoal,
   onBack,
   onOpenChat,
   onReload,
@@ -223,11 +240,14 @@ function ProjectView({
   agents: Agent[];
   template: Template | undefined;
   roleLabel: (p: Project | undefined, name: string) => { label: string; glyph: string };
+  initialGoal?: string | null;
   onBack: () => void;
   onOpenChat: (agentName: string) => void;
   onReload: () => void;
 }) {
-  const [goal, setGoal] = useState(project.goal ?? "");
+  // Seed the goal box with what the merchant said on the entry screen, so a
+  // brand-new tool opens ready to plan their actual request.
+  const [goal, setGoal] = useState(initialGoal ?? project.goal ?? "");
   const [phase, setPhase] = useState<
     "idle" | "proposing" | "intake" | "proposed" | "approving"
   >("idle");
