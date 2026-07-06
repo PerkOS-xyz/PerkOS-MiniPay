@@ -18,7 +18,15 @@ export async function checkWalletAccess(address: string): Promise<boolean> {
 
   try {
     const cfg = await adminDb().doc("config/access").get();
-    if (cfg.exists && cfg.data()?.publicMode === true) return true;
+    // Per-surface public mode: MiniPay reads its own `publicModeMinipay` flag
+    // when set, falling back to the legacy global `publicMode`. This is what
+    // lets the Admin open/close MiniPay INDEPENDENTLY of the App (which reads
+    // `publicModeApp`). The `PERKOS_PUBLIC_MODE` env above still force-opens.
+    const d = cfg.data();
+    const mpVal = d?.publicModeMinipay;
+    if ((typeof mpVal === "boolean" ? mpVal : d?.publicMode) === true) {
+      return true;
+    }
   } catch {
     // fall through
   }
