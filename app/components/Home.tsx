@@ -27,6 +27,7 @@ import { AgentChat } from "./AgentChat";
 import { TemplateGallery } from "./TemplateGallery";
 import { NeedToday } from "./NeedToday";
 import { TeamThread } from "./TeamThread";
+import { ServerWallet } from "./ServerWallet";
 
 type Loaded = {
   agents: Agent[];
@@ -46,7 +47,7 @@ export function Home({ address }: { address: string }) {
 
   const [data, setData] = useState<Loaded | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [view, setView] = useState<"list" | "gallery">("list");
+  const [view, setView] = useState<"list" | "gallery" | "wallet">("list");
   const [openProjectId, setOpenProjectId] = useState<string | null>(null);
   const [chatAgent, setChatAgent] = useState<string | null>(null);
   // Carried in from the first-run "what do you need?" box so the team thread
@@ -120,14 +121,22 @@ export function Home({ address }: { address: string }) {
       <button onClick={goToLanding} aria-label="Home" className="active:opacity-80">
         <Brand />
       </button>
-      {!isMiniPay && (
+      <div className="flex items-center gap-3">
         <button
-          onClick={logout}
+          onClick={() => setView("wallet")}
           className="text-xs text-[var(--muted)] underline-offset-2 hover:underline"
         >
-          Log out
+          Team wallet
         </button>
-      )}
+        {!isMiniPay && (
+          <button
+            onClick={logout}
+            className="text-xs text-[var(--muted)] underline-offset-2 hover:underline"
+          >
+            Log out
+          </button>
+        )}
+      </div>
     </header>
   );
 
@@ -192,6 +201,22 @@ export function Home({ address }: { address: string }) {
             load();
           }}
         />
+        <button
+          onClick={() => setView("list")}
+          className="text-sm text-[var(--muted)] underline-offset-2 hover:underline"
+        >
+          ‹ Back to my team
+        </button>
+      </main>
+    );
+  }
+
+  // --- Team wallet (server wallet: address + Celo balance + deposit) -------
+  if (view === "wallet") {
+    return (
+      <main className="flex flex-col gap-5 px-5 py-7">
+        {header}
+        <ServerWallet />
         <button
           onClick={() => setView("list")}
           className="text-sm text-[var(--muted)] underline-offset-2 hover:underline"
