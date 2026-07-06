@@ -3,21 +3,17 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   agentStatus,
-  approveWorkflow,
   getBillingMe,
-  getWorkflow,
   listActivity,
   listAgents,
   listProjects,
   listTasks,
-  proposeWorkflow,
   type ActivityEvent,
   type Agent,
   type BillingMe,
   type Project,
   type Task,
   type Template,
-  type WorkflowTask,
 } from "../lib/perkosApi";
 import { listTemplates } from "../lib/perkosApi";
 import { Dashboard } from "./Dashboard";
@@ -30,6 +26,7 @@ import { Brand } from "./Brand";
 import { AgentChat } from "./AgentChat";
 import { TemplateGallery } from "./TemplateGallery";
 import { NeedToday } from "./NeedToday";
+import { TeamThread } from "./TeamThread";
 
 type Loaded = {
   agents: Agent[];
@@ -52,8 +49,8 @@ export function Home({ address }: { address: string }) {
   const [view, setView] = useState<"list" | "gallery">("list");
   const [openProjectId, setOpenProjectId] = useState<string | null>(null);
   const [chatAgent, setChatAgent] = useState<string | null>(null);
-  // Carried in from the first-run "what do you need?" box so the tool opens
-  // with the merchant's own words already in the goal field.
+  // Carried in from the first-run "what do you need?" box so the team thread
+  // opens with the merchant's own words already sent.
   const [initialGoal, setInitialGoal] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -73,7 +70,7 @@ export function Home({ address }: { address: string }) {
       const tasksByProject = new Map(projects.map((p, i) => [p.id, taskLists[i] ?? []]));
       setData({ agents, projects, templates, billing, activity, tasksByProject });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't load your tools");
+      setError(e instanceof Error ? e.message : "Couldn't load your team");
     }
   }, [address]);
 
@@ -103,7 +100,7 @@ export function Home({ address }: { address: string }) {
     ? data.projects.find((p) => p.id === openProjectId) ?? null
     : null;
 
-  // --- Chat with one agent --------------------------------------------------
+  // --- Talk to one helper alone (optional 1:1) ------------------------------
   if (chatAgent && openProject) {
     const { label, glyph } = roleLabel(openProject, chatAgent);
     return (
@@ -134,11 +131,10 @@ export function Home({ address }: { address: string }) {
     </header>
   );
 
-  // --- One activated tool (project) detail ---------------------------------
+  // --- One activated tool (project) — the team thread ----------------------
   if (openProject) {
     return (
       <ProjectView
-        address={address}
         project={openProject}
         agents={data.agents}
         template={templateFor(openProject)}
@@ -149,7 +145,11 @@ export function Home({ address }: { address: string }) {
           setInitialGoal(null);
         }}
         onOpenChat={setChatAgent}
-        onReload={load}
+        onAddCredits={() => {
+          setOpenProjectId(null);
+          setInitialGoal(null);
+          setView("gallery");
+        }}
       />
     );
   }
@@ -225,7 +225,6 @@ export function Home({ address }: { address: string }) {
 // ---------------------------------------------------------------------------
 
 function ProjectView({
-  address,
   project,
   agents,
   template,
@@ -233,9 +232,8 @@ function ProjectView({
   initialGoal,
   onBack,
   onOpenChat,
-  onReload,
+  onAddCredits,
 }: {
-  address: string;
   project: Project;
   agents: Agent[];
   template: Template | undefined;
@@ -243,269 +241,56 @@ function ProjectView({
   initialGoal?: string | null;
   onBack: () => void;
   onOpenChat: (agentName: string) => void;
-  onReload: () => void;
+  onAddCredits: () => void;
 }) {
-  // Seed the goal box with what the merchant said on the entry screen, so a
-  // brand-new tool opens ready to plan their actual request.
-  const [goal, setGoal] = useState(initialGoal ?? project.goal ?? "");
-  const [phase, setPhase] = useState<
-    "idle" | "proposing" | "intake" | "proposed" | "approving"
-  >("idle");
-  const [plan, setPlan] = useState<{
-    docId: string;
-    estimateCredits: number;
-    tasks: WorkflowTask[];
-    chat: string;
-  } | null>(null);
-  const [intakeChat, setIntakeChat] = useState<string | null>(null);
-  const [balance, setBalance] = useState<{ credits: number; freeWorkflowsLeft: number } | null>(null);
-  const [freeEligible, setFreeEligible] = useState(false);
-  const [canAfford, setCanAfford] = useState(false);
-  const [needCredits, setNeedCredits] = useState<{ need: number; have: number } | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    listTasks(address, project.id).then(setTasks).catch(() => setTasks([]));
-  }, [address, project.id]);
-
-  const errMsg = (e: unknown) => (e instanceof Error ? e.message : "Something went wrong");
-
-  async function propose() {
-    if (!goal.trim()) return;
-    setPhase("proposing");
-    setError(null);
-    setNeedCredits(null);
-    setIntakeChat(null);
-    try {
-      const res = await proposeWorkflow(project.id, goal.trim());
-      if (res.status === "intake") {
-        setIntakeChat(res.chat);
-        setPhase("intake");
-        return;
-      }
-      const view = await getWorkflow(project.id, res.docId);
-      setPlan({ docId: res.docId, estimateCredits: view.estimateCredits, tasks: view.tasks, chat: res.chat });
-      setBalance(view.balance);
-      setFreeEligible(view.freeEligible);
-      setCanAfford(view.canAfford);
-      setPhase("proposed");
-    } catch (e) {
-      setError(errMsg(e));
-      setPhase("idle");
-    }
-  }
-
-  async function approve() {
-    if (!plan) return;
-    setPhase("approving");
-    setError(null);
-    setNeedCredits(null);
-    try {
-      const res = await approveWorkflow(project.id, plan.docId);
-      if (res.ok) {
-        setPlan(null);
-        setGoal("");
-        setPhase("idle");
-        listTasks(address, project.id).then(setTasks).catch(() => {});
-        onReload();
-      } else if (res.code === "INSUFFICIENT_CREDITS") {
-        setNeedCredits({ need: res.need ?? 0, have: res.have ?? 0 });
-        setPhase("proposed");
-      } else if (res.code === "WORKFLOW_TOO_LARGE") {
-        setError(
-          `That's a big job (${res.estimateCredits} credits, max ${res.max} at once). Try breaking it into smaller asks.`,
-        );
-        setPhase("proposed");
-      } else {
-        setError("Couldn't start that. Please try again.");
-        setPhase("proposed");
-      }
-    } catch (e) {
-      setError(errMsg(e));
-      setPhase("proposed");
-    }
-  }
-
-  function discard() {
-    setPlan(null);
-    setNeedCredits(null);
-    setError(null);
-    setPhase("idle");
-  }
-
   return (
-    <main className="flex flex-col gap-5 px-5 py-7">
+    <main className="flex h-[100dvh] flex-col px-5 pb-3 pt-4">
       <header className="flex items-center gap-3">
         <button onClick={onBack} aria-label="Back" className="-ml-1 px-1 text-2xl leading-none">
           ‹
         </button>
-        <div className="min-w-0">
-          <h1 className="truncate text-xl font-semibold">{template?.name ?? project.name}</h1>
-          {template?.tagline && (
-            <p className="truncate text-xs text-[var(--muted)]">{template.tagline}</p>
-          )}
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-lg font-semibold">{template?.name ?? project.name}</h1>
+          <p className="truncate text-xs text-[var(--muted)]">
+            Your team · tap a helper to talk to them alone
+          </p>
         </div>
       </header>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-[var(--muted)]">
-          Your helpers <span className="font-normal opacity-70">· tap to chat</span>
-        </h2>
-        {(project.agentIds ?? []).map((name) => {
-          const agent = agents.find((a) => a.name === name);
-          const { label, glyph } = roleLabel(project, name);
-          const status = agent ? agentStatus(agent) : "provisioning";
-          const dot =
-            status === "online" ? "#4ade80" : status === "provisioning" ? "#fbbf24" : "#9ca3af";
-          return (
-            <button
-              key={name}
-              onClick={() => onOpenChat(name)}
-              className="flex w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-left active:scale-[0.99]"
-            >
-              <span
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-lg"
-                style={{ background: "linear-gradient(135deg,#8b5cf6,#ec4899)" }}
-                aria-hidden
-              >
-                {glyph}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="font-medium">{label}</p>
-              </div>
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: dot }} />
-              <span className="shrink-0 text-lg text-[var(--muted)]" aria-hidden>›</span>
-            </button>
-          );
-        })}
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-medium text-[var(--muted)]">Ask them to do something</h2>
-
-        {/* Compose / intake: enter a goal, propose a plan */}
-        {(phase === "idle" || phase === "proposing" || phase === "intake") && (
-          <>
-            {intakeChat && (
-              <div className="rounded-2xl border border-amber-300/20 bg-amber-300/5 p-3 text-sm">
-                <p className="mb-1 text-xs font-medium text-amber-200/80">One quick question</p>
-                <p>{intakeChat}</p>
-              </div>
-            )}
-            <textarea
-              value={goal}
-              onChange={(e) => setGoal(e.target.value)}
-              placeholder="e.g. Log today's sales and tell me what I earned this week"
-              rows={3}
-              className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm outline-none"
-            />
-            <button
-              onClick={propose}
-              disabled={phase === "proposing" || !goal.trim()}
-              className="rounded-2xl bg-[var(--accent)] px-4 py-3 font-medium text-white disabled:opacity-60"
-            >
-              {phase === "proposing"
-                ? "Planning…"
-                : intakeChat
-                  ? "Update & re-plan"
-                  : "Plan this"}
-            </button>
-            <p className="text-center text-xs text-[var(--muted)]">
-              You'll see the plan and its cost before anything runs.
-            </p>
-          </>
-        )}
-
-        {/* Proposal: show the plan + estimate + approve */}
-        {(phase === "proposed" || phase === "approving") && plan && (
-          <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-            {plan.chat && <p className="text-sm">{plan.chat}</p>}
-            <ul className="flex flex-col gap-1.5">
-              {plan.tasks.map((t, i) => (
-                <li key={i} className="flex items-center gap-2 text-sm">
-                  <span className="text-[var(--muted)]">•</span>
-                  <span className="min-w-0 flex-1 truncate">{t.title}</span>
-                  <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-[var(--muted)]">
-                    {t.complexity}
-                  </span>
-                </li>
-              ))}
-            </ul>
-
-            <div className="flex items-center justify-between border-t border-white/10 pt-3 text-sm">
-              <span className="text-[var(--muted)]">Cost</span>
-              <span className="font-semibold">
-                {freeEligible ? (
-                  <>
-                    <span className="text-[#4ade80]">Free</span>{" "}
-                    <span className="text-xs font-normal text-[var(--muted)]">
-                      ({balance?.freeWorkflowsLeft ?? 0} free left this month)
-                    </span>
-                  </>
-                ) : (
-                  <>≈ {plan.estimateCredits} credits</>
-                )}
-              </span>
-            </div>
-            {!freeEligible && balance && (
-              <p className="-mt-1 text-right text-xs text-[var(--muted)]">
-                You have {balance.credits} credits
-              </p>
-            )}
-
-            {needCredits && (
-              <p className="rounded-xl bg-red-400/10 p-2 text-center text-xs text-red-200">
-                Not enough credits · need {needCredits.need}, have {needCredits.have}. Top up below.
-              </p>
-            )}
-
-            <div className="flex gap-2">
-              <button
-                onClick={discard}
-                disabled={phase === "approving"}
-                className="rounded-2xl border border-white/15 px-4 py-3 text-sm font-medium disabled:opacity-60"
-              >
-                Discard
-              </button>
-              <button
-                onClick={approve}
-                disabled={phase === "approving" || (!freeEligible && !canAfford)}
-                className="flex-1 rounded-2xl bg-[var(--accent)] px-4 py-3 font-medium text-white disabled:opacity-60"
-              >
-                {phase === "approving"
-                  ? "Starting…"
-                  : freeEligible
-                    ? "Approve & run (free)"
-                    : canAfford
-                      ? `Approve & run · ${plan.estimateCredits} credits`
-                      : "Top up to run"}
-              </button>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {tasks.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <h2 className="text-sm font-medium text-[var(--muted)]">What they're doing</h2>
-          {tasks.map((t) => {
-            const tone =
-              t.status === "Done" ? "#4ade80" : t.status === "In progress" ? "#fbbf24" : "#9ca3af";
+      {/* The fleet is your team. Tapping a helper opens a 1:1 (optional); the
+          main way to get things done is the one thread below. */}
+      {(project.agentIds ?? []).length > 0 && (
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+          {(project.agentIds ?? []).map((name) => {
+            const agent = agents.find((a) => a.name === name);
+            const { label, glyph } = roleLabel(project, name);
+            const status = agent ? agentStatus(agent) : "provisioning";
+            const dot =
+              status === "online" ? "#4ade80" : status === "provisioning" ? "#fbbf24" : "#9ca3af";
             return (
-              <div
-                key={t.id}
-                className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3"
+              <button
+                key={name}
+                onClick={() => onOpenChat(name)}
+                className="flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5"
               >
-                <p className="min-w-0 flex-1 truncate text-sm">{t.name}</p>
-                <span className="ml-3 shrink-0 text-xs" style={{ color: tone }}>{t.status}</span>
-              </div>
+                <span
+                  className="grid h-6 w-6 place-items-center rounded-full text-xs"
+                  style={{ background: "linear-gradient(135deg,#8b5cf6,#ec4899)", color: "#fff" }}
+                  aria-hidden
+                >
+                  {glyph}
+                </span>
+                <span className="text-xs">{label}</span>
+                <span className="h-2 w-2 rounded-full" style={{ background: dot }} />
+              </button>
             );
           })}
-        </section>
+        </div>
       )}
 
-      {error && <p className="text-xs text-red-300">{error}</p>}
+      <div className="mt-2 flex min-h-0 flex-1 flex-col">
+        <TeamThread projectId={project.id} initialGoal={initialGoal} onAddCredits={onAddCredits} />
+      </div>
     </main>
   );
 }
