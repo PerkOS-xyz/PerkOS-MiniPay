@@ -427,6 +427,22 @@ export async function mentionAgent(
   });
 }
 
+// ─── Server wallet (Dynamic MPC — the team's on-chain wallet) ────────────────
+
+/** The user's PerkOS-operated server wallet (MPC 2-of-2). The private key
+ *  material never leaves PerkOS-API; this only ever carries the public address. */
+export type ServerWallet = { address: string; walletId?: string; chains?: string[] };
+
+/** Create-or-return the caller's server wallet (idempotent). Keyed to the
+ *  Firebase uid = the user's login wallet. See PERKOS-ONCHAIN-WALLET-DESIGN.md. */
+export async function ensureServerWallet(): Promise<ServerWallet> {
+  const res = await authedJson<{ ok: boolean; wallet: ServerWallet }>("/wallet/ensure", {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+  return res.wallet;
+}
+
 // ─── Templates (shared-agents redesign) ──────────────────────────────────────
 
 export type TemplateRoleRef = { agentName: string; label: string; isPM?: boolean };
