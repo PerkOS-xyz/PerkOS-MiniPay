@@ -6,6 +6,8 @@ import {
   approveWorkflow,
   getWorkflow,
   proposeWorkflow,
+  revealWorkflow,
+  type PreviewTask,
   type WorkflowTask,
 } from "../lib/perkosApi";
 import { useVoiceInput } from "../lib/useVoiceInput";
@@ -35,7 +37,13 @@ type Bubble =
       freeLeft: number;
       freeEligible: boolean;
       canAfford: boolean;
-      state: "proposed" | "approving" | "done";
+      /** proposed→approving→(legacy)done | (new)running→preview→revealing→revealed */
+      state: "proposed" | "approving" | "done" | "running" | "preview" | "revealing" | "revealed";
+      /** See-before-you-pay flow on for this workflow (from the API flag). */
+      previewReveal?: boolean;
+      progress?: { tasksTotal: number; tasksDone: number };
+      preview?: PreviewTask[];
+      results?: Array<{ taskId: string; title: string; agent: string; result: string | null }>;
       note?: string;
     };
 
@@ -61,6 +69,8 @@ export function TeamThread({
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const mounted = useRef(true);
+  const polling = useRef<Set<string>>(new Set());
   const voice = useVoiceInput({
     onResult: (t) => setText((p) => (p ? `${p} ${t}` : t)),
   });
@@ -68,6 +78,13 @@ export function TeamThread({
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [items.length]);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   // Greet, then — if the merchant already said what they need on the entry
   // screen — send it straight away so a plan is forming as they land.
@@ -125,6 +142,7 @@ export function TeamThread({
           freeLeft: view.balance.freeWorkflowsLeft,
           freeEligible: view.freeEligible,
           canAfford: view.canAfford,
+          previewReveal: view.previewReveal ?? false,
           state: "proposed",
         });
       }
@@ -144,12 +162,19 @@ export function TeamThread({
     try {
       const res = await approveWorkflow(projectId, item.docId);
       if (res.ok) {
-        patchPlan(item.id, { state: "done" });
-        put({
-          id: uid(),
-          kind: "team",
-          text: "On it — your team is working on this now. I'll keep the results in your jobs.",
-        });
+        if (res.reserved) {
+          // See-before-you-pay: the team runs, then we preview before charging.
+          patchPlan(item.id, { state: "running", progress: { tasksTotal: item.tasks.length, tasksDone: 0 } });
+          void pollUntilPreview(item.id, item.docId);
+        } else {
+          // Legacy: charged at accept, results land in the jobs board.
+          patchPlan(item.id, { state: "done" });
+          put({
+            id: uid(),
+            kind: "team",
+            text: "On it — your team is working on this now. I'll keep the results in your jobs.",
+          });
+        }
       } else if (res.code === "INSUFFICIENT_CREDITS") {
         patchPlan(item.id, {
           state: "proposed",
@@ -165,6 +190,67 @@ export function TeamThread({
       }
     } catch {
       patchPlan(item.id, { state: "proposed", note: "Couldn't start that. Please try again." });
+    }
+  }
+
+  /** Poll the workflow while the team runs; surface the preview when it's ready. */
+  async function pollUntilPreview(bubbleId: string, docId: string) {
+    if (polling.current.has(bubbleId)) return;
+    polling.current.add(bubbleId);
+    try {
+      for (let i = 0; i < 90 && mounted.current; i++) {
+        await new Promise((r) => setTimeout(r, 4000));
+        if (!mounted.current) return;
+        let view;
+        try {
+          view = await getWorkflow(projectId, docId);
+        } catch {
+          continue; // transient — keep polling
+        }
+        if (view.progress) patchPlan(bubbleId, { progress: view.progress });
+        if (view.workflowState === "preview" || view.workflowState === "settled") {
+          patchPlan(bubbleId, {
+            state: view.workflowState === "settled" ? "revealed" : "preview",
+            preview: view.preview ?? [],
+            canAfford: view.canAfford,
+            credits: view.balance.credits,
+            results:
+              view.workflowState === "settled"
+                ? (view.preview ?? []).map((p) => ({ taskId: p.taskId, title: p.title, agent: p.agent, result: p.result }))
+                : undefined,
+          });
+          return;
+        }
+      }
+    } finally {
+      polling.current.delete(bubbleId);
+    }
+  }
+
+  async function reveal(item: Extract<Bubble, { kind: "plan" }>) {
+    patchPlan(item.id, { state: "revealing", note: undefined });
+    try {
+      const res = await revealWorkflow(projectId, item.docId);
+      if (res.ok) {
+        patchPlan(item.id, {
+          state: "revealed",
+          results: res.results,
+          credits: res.balanceAfter ?? item.credits,
+        });
+      } else if (res.code === "INSUFFICIENT_CREDITS") {
+        patchPlan(item.id, {
+          state: "preview",
+          canAfford: false,
+          note: `Need ${res.need} credits to unlock, you have ${res.have}. Add cUSD or upgrade.`,
+        });
+      } else if (res.code === "NOT_READY") {
+        patchPlan(item.id, { state: "running", note: "Still finishing — one moment." });
+        void pollUntilPreview(item.id, item.docId);
+      } else {
+        patchPlan(item.id, { state: "preview", note: "Couldn't unlock just now. Please try again." });
+      }
+    } catch {
+      patchPlan(item.id, { state: "preview", note: "Couldn't unlock just now. Please try again." });
     }
   }
 
@@ -237,6 +323,67 @@ export function TeamThread({
 
               {b.state === "done" ? (
                 <p className="mt-2 text-center text-xs text-[#4ade80]">✓ Started</p>
+              ) : b.state === "running" ? (
+                <div className="mt-2 flex items-center justify-center gap-2 text-xs text-[var(--muted)]">
+                  <span className="inline-flex gap-1" aria-label="Working">
+                    <Dot /> <Dot /> <Dot />
+                  </span>
+                  Your team is working…
+                  {b.progress ? ` (${b.progress.tasksDone}/${b.progress.tasksTotal})` : ""}
+                </div>
+              ) : b.state === "preview" ? (
+                <div className="mt-2 flex flex-col gap-2">
+                  <p className="text-center text-xs font-medium text-[#4ade80]">
+                    ✓ Your team finished — here&apos;s a taste
+                  </p>
+                  <ul className="flex flex-col gap-1.5">
+                    {(b.preview ?? []).map((p) => (
+                      <li key={p.taskId} className="rounded-xl bg-white/5 p-2 text-sm">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="min-w-0 flex-1 font-medium">{p.title}</span>
+                          <span className="shrink-0 text-[var(--muted)]" aria-label="Locked">🔒</span>
+                        </div>
+                        {p.snippet && (
+                          <p className="mt-0.5 text-xs text-[var(--muted)]">{p.snippet}</p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  {b.note && (
+                    <p className="rounded-xl bg-red-400/10 p-2 text-center text-xs text-red-200">{b.note}</p>
+                  )}
+                  {b.canAfford ? (
+                    <button
+                      onClick={() => reveal(b)}
+                      className="rounded-xl bg-[#12a150] px-4 py-2.5 text-sm font-medium text-white"
+                    >
+                      Unlock full results · {b.estimateCredits} credits
+                    </button>
+                  ) : (
+                    <button
+                      onClick={onAddCredits}
+                      className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white"
+                    >
+                      Add cUSD to unlock · need {b.estimateCredits}
+                    </button>
+                  )}
+                </div>
+              ) : b.state === "revealing" ? (
+                <p className="mt-2 text-center text-xs text-[var(--muted)]">Unlocking…</p>
+              ) : b.state === "revealed" ? (
+                <div className="mt-2 flex flex-col gap-2">
+                  <p className="text-center text-xs font-medium text-[#4ade80]">✓ Done</p>
+                  <ul className="flex flex-col gap-1.5">
+                    {(b.results ?? []).map((r) => (
+                      <li key={r.taskId} className="rounded-xl bg-white/5 p-2 text-sm">
+                        <p className="font-medium">{r.title}</p>
+                        {r.result && (
+                          <p className="mt-0.5 whitespace-pre-wrap text-xs text-[var(--foreground)]">{r.result}</p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ) : (
                 <div className="mt-2.5 flex gap-2">
                   {!b.freeEligible && !b.canAfford ? (
