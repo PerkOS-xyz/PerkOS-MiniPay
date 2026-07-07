@@ -281,6 +281,16 @@ export async function proposeWorkflow(
   return data;
 }
 
+export type PreviewTask = {
+  taskId: string;
+  title: string;
+  agent: string;
+  done: boolean;
+  locked: boolean;
+  snippet: string | null;
+  result: string | null;
+};
+
 export type WorkflowView = {
   docId: string;
   workflowState: string;
@@ -293,6 +303,11 @@ export type WorkflowView = {
   freeEligible: boolean;
   canAfford: boolean;
   tooLarge: boolean;
+  /** True when the see-before-you-pay flow is on (else the legacy charge-at-accept). */
+  previewReveal?: boolean;
+  progress?: { tasksTotal: number; tasksDone: number };
+  preview?: PreviewTask[];
+  revealable?: boolean;
 };
 
 export async function getWorkflow(
@@ -309,6 +324,9 @@ export type ApproveResult =
   | {
       ok: true;
       settlement: "exempt" | "free" | "credits";
+      /** New flow: the workflow was reserved (charge deferred to reveal). */
+      reserved?: boolean;
+      workflowState?: string;
       estimateCredits: number;
       created: number;
       balanceAfter: number | null;
@@ -349,6 +367,50 @@ export async function approveWorkflow(
     have: e.have,
     estimateCredits: e.estimateCredits,
     max: e.max,
+  };
+}
+
+export type RevealResult =
+  | {
+      ok: true;
+      settlement: "exempt" | "free" | "credits";
+      chargedCredits: number;
+      balanceAfter: number | null;
+      results: Array<{ taskId: string; title: string; agent: string; result: string | null }>;
+      alreadySettled?: boolean;
+    }
+  | {
+      ok: false;
+      /** "INSUFFICIENT_CREDITS" (402) | "NOT_READY" | "NOT_RESERVED" (409) */
+      code: string;
+      need?: number;
+      have?: number;
+      workflowState?: string;
+    };
+
+/** Reveal the full result — the charge point in the see-before-you-pay flow.
+ *  402 INSUFFICIENT_CREDITS / 409 NOT_READY come back as ok:false so the UI can
+ *  offer a top-up or keep waiting. */
+export async function revealWorkflow(
+  projectId: string,
+  docId: string,
+): Promise<RevealResult> {
+  const res = await authedFetch(`/minipay/workflow/${projectId}/${docId}/reveal`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+  const body = (await res.json().catch(() => ({}))) as {
+    data?: RevealResult;
+    error?: { code?: string; need?: number; have?: number; workflowState?: string };
+  };
+  if (res.ok && body.data) return body.data;
+  const e = body.error ?? {};
+  return {
+    ok: false,
+    code: e.code ?? "REVEAL_FAILED",
+    need: e.need,
+    have: e.have,
+    workflowState: e.workflowState,
   };
 }
 
