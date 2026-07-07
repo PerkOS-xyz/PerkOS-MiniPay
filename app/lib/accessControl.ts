@@ -1,8 +1,10 @@
 import { adminDb } from "./firebaseAdmin";
 
-// Mirrors the PerkOS access cascade: public mode → env allowlist → Firestore /allowlist/{addr}.
-// For the MiniPay launch the plan is PUBLIC mode (open to MiniPay's retail audience), so a
-// `PERKOS_PUBLIC_MODE=true` env short-circuit is supported for this build.
+// MiniPay access cascade: public mode → env allowlist → Firestore
+// /minipay_allowlist/{addr}. MiniPay has its OWN allowlist, SEPARATE from the
+// App's /allowlist — a wallet can have MiniPay access without App access and
+// vice versa (Julio 2026-07-06). Curated in PerkOS-Admin → MiniPay → Access.
+// The env `PERKOS_PUBLIC_MODE` short-circuit still opens MiniPay to everyone.
 
 export async function checkWalletAccess(address: string): Promise<boolean> {
   const addr = address.toLowerCase();
@@ -32,7 +34,8 @@ export async function checkWalletAccess(address: string): Promise<boolean> {
   }
 
   try {
-    const doc = await adminDb().doc(`allowlist/${addr}`).get();
+    // MiniPay-only allowlist (NOT the App's /allowlist — independent by design).
+    const doc = await adminDb().doc(`minipay_allowlist/${addr}`).get();
     if (doc.exists && doc.data()?.suspended !== true) return true;
   } catch {
     // fall through
