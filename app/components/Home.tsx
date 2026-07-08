@@ -241,6 +241,7 @@ export function Home({ address }: { address: string }) {
         activity={data.activity}
         onOpenProject={setOpenProjectId}
         onAddTool={() => setView("gallery")}
+        onRewardClaimed={load}
       />
       {error && <p className="text-xs text-red-300">{error}</p>}
     </main>

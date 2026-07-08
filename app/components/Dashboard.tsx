@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
+
 import {
   agentStatus,
+  claimReward,
   type Agent,
   type ActivityEvent,
   type BillingMe,
@@ -35,6 +38,7 @@ type Props = {
   activity: ActivityEvent[];
   onOpenProject: (id: string) => void;
   onAddTool: () => void;
+  onRewardClaimed?: () => void;
 };
 
 export function Dashboard({
@@ -47,7 +51,20 @@ export function Dashboard({
   activity,
   onOpenProject,
   onAddTool,
+  onRewardClaimed,
 }: Props) {
+  const [claiming, setClaiming] = useState(false);
+
+  async function handleClaim() {
+    if (claiming) return;
+    setClaiming(true);
+    try {
+      const r = await claimReward();
+      if (r.ok) onRewardClaimed?.();
+    } finally {
+      setClaiming(false);
+    }
+  }
   const templateFor = (p: Project) =>
     templates.find((t) => t.id === (p as Project & { templateId?: string }).templateId);
   const isOnline = (p: Project) =>
@@ -87,6 +104,27 @@ export function Dashboard({
         />
         <Stat emoji="✅" label="Jobs done" value={String(tasksDone)} secondary="all time" />
       </section>
+
+      {/* Free monthly reward — manual claim, tops up to the target */}
+      {billing?.rewardClaimable && !exempt ? (
+        <button
+          onClick={handleClaim}
+          disabled={claiming}
+          className="flex items-center gap-3 rounded-2xl border border-[#4ade80]/40 bg-[#4ade80]/10 p-4 text-left active:scale-[0.99] disabled:opacity-60"
+        >
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#4ade80]/20 text-lg" aria-hidden>
+            🎁
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-medium text-[#4ade80]">
+              {claiming ? "Claiming…" : `Claim ${(billing.rewardTarget ?? 15) - credits} free credits`}
+            </span>
+            <span className="block text-xs text-[var(--muted)]">
+              Plan with your team, earn free credits — come back each month.
+            </span>
+          </span>
+        </button>
+      ) : null}
 
       {/* Buy credits (packs) */}
       <WalletPanel address={address} compact />
