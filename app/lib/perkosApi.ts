@@ -425,10 +425,36 @@ export type BillingMe = {
   exempt: boolean;
   enrolled: boolean;
   creditUsd: number;
+  /** Monthly free reward: claimable now? + the top-up target. */
+  rewardClaimable?: boolean;
+  rewardTarget?: number;
+  lastRewardClaimMonth?: string | null;
 };
 
 export async function getBillingMe(): Promise<BillingMe> {
   return authedJson<BillingMe>("/minipay/billing/me");
+}
+
+export type ClaimRewardResult =
+  | { ok: true; credited: number; balanceAfter: number }
+  | { ok: false; code: string; balance?: number };
+
+/** Claim the monthly free reward → tops credits up to the target. */
+export async function claimReward(): Promise<ClaimRewardResult> {
+  const res = await authedFetch("/minipay/billing/claim-reward", {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+  const body = (await res.json().catch(() => ({}))) as {
+    ok?: boolean;
+    credited?: number;
+    balanceAfter?: number;
+    error?: { code?: string; balance?: number };
+  };
+  if (res.ok && body.ok) {
+    return { ok: true, credited: body.credited ?? 0, balanceAfter: body.balanceAfter ?? 0 };
+  }
+  return { ok: false, code: body.error?.code ?? "CLAIM_FAILED", balance: body.error?.balance };
 }
 
 export type CreditPacks = {
