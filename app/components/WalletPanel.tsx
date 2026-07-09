@@ -6,7 +6,14 @@ import { celo } from "wagmi/chains";
 import { formatUnits } from "viem";
 import { CUSD, USDC, USDT, type TokenInfo } from "../lib/tokenAddresses";
 import { usePayCusd } from "../lib/usePayCusd";
-import { getBillingMe, getPacks, depositCelo, type BillingMe, type CreditPacks } from "../lib/perkosApi";
+import {
+  getBillingMe,
+  getPacks,
+  depositCelo,
+  buyMembership,
+  type BillingMe,
+  type CreditPacks,
+} from "../lib/perkosApi";
 
 const ERC20_BALANCE_ABI = [
   {
@@ -115,11 +122,55 @@ export function WalletPanel({ address, compact = false }: { address: string; com
     }
   }
 
+  async function buyTier(key: "basic" | "pro", usd: number) {
+    setMsg(null);
+    if (!PAYMENT_ADDRESS) {
+      setMsg("Membership isn't configured yet.");
+      return;
+    }
+    const token = payTokenFor(usd);
+    if (!token) {
+      setMsg(`You need at least $${usd} in USDT, cUSD or USDC to go ${key}.`);
+      return;
+    }
+    setBusy(true);
+    try {
+      setMsg(`Paying ${usd} ${token.symbol}…`);
+      const hash = await pay(PAYMENT_ADDRESS, String(usd), token);
+      setMsg("Activating membership…");
+      let done = false;
+      for (let i = 0; i < 4 && !done; i++) {
+        const r = await buyMembership(key, hash);
+        if (r.ok) {
+          setMsg(`You're on ${key[0].toUpperCase() + key.slice(1)} — +${r.credits} credits`);
+          done = true;
+        } else {
+          await new Promise((res) => setTimeout(res, 3000));
+        }
+      }
+      if (!done) setMsg("Payment sent — membership will activate shortly.");
+      refreshBilling();
+      setTimeout(() => refetch(), 4000);
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Membership payment failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const displayPacks = packs?.packs ?? [
     { usd: 0.25, credits: 10 },
     { usd: 1, credits: 50 },
     { usd: 5, credits: 300 },
   ];
+  const tiers = packs?.tiers;
+  const currentTier = billing?.membershipTier ?? "free";
+  // Offer a tier only when it's an upgrade (free → basic/pro, basic → pro).
+  const tierOffers = tiers
+    ? ([["basic", tiers.basic] as const, ["pro", tiers.pro] as const]).filter(([key]) =>
+        currentTier === "free" ? true : currentTier === "basic" ? key === "pro" : false,
+      )
+    : [];
 
   return (
     <section className="rounded-2xl border border-white/10 bg-white/5 p-4">
@@ -170,6 +221,41 @@ export function WalletPanel({ address, compact = false }: { address: string; com
         ))}
       </div>
       <p className="mt-2 text-xs text-[var(--muted)]">Credits pay for the work · pay with USDT, cUSD or USDC</p>
+
+      {tierOffers.length > 0 && (
+        <div className="mt-3 border-t border-white/10 pt-3">
+          <p className="text-sm font-medium">
+            {currentTier === "basic" ? "Go Pro" : "Membership"}
+          </p>
+          <p className="text-[11px] text-[var(--muted)]">
+            More credits every month + a higher analysis limit.
+          </p>
+          <div className="mt-2 flex flex-col gap-2">
+            {tierOffers.map(([key, t]) => (
+              <button
+                key={key}
+                onClick={() => buyTier(key, t.usd)}
+                disabled={busy || !ready}
+                className="flex items-center justify-between rounded-xl border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-2.5 text-left disabled:opacity-50"
+              >
+                <span>
+                  <span className="block text-sm font-medium capitalize">{key}</span>
+                  <span className="block text-[11px] text-[var(--muted)]">
+                    {t.credits} credits/mo · {t.monthlyAnalysisCap} analyses
+                  </span>
+                </span>
+                <span className="text-sm font-semibold">${t.usd}/mo</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {billing?.membershipActive && (
+        <p className="mt-2 text-[11px] text-[#4ade80]">
+          {currentTier === "pro" ? "Pro member" : "Member"} · renews monthly
+        </p>
+      )}
       {msg && <p className="mt-1 text-xs text-[var(--muted)]">{msg}</p>}
     </section>
   );

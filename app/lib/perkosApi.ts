@@ -475,6 +475,42 @@ export async function getPacks(): Promise<CreditPacks> {
   return authedJson<CreditPacks>("/minipay/billing/packs");
 }
 
+export type BuyMembershipResult =
+  | { ok: true; credits: number; tier: string; membershipUntil: string }
+  | { ok: false; code: string; message?: string };
+
+/** Verify a cUSD payment and grant/renew the tier's monthly membership. */
+export async function buyMembership(
+  tier: "basic" | "pro",
+  txHash: string,
+): Promise<BuyMembershipResult> {
+  const res = await authedFetch("/minipay/billing/membership", {
+    method: "POST",
+    body: JSON.stringify({ txHash, tier }),
+  });
+  const body = (await res.json().catch(() => ({}))) as {
+    ok?: boolean;
+    credits?: number;
+    tier?: string;
+    membershipUntil?: string;
+    error?: { code?: string; message?: string };
+    message?: string;
+  };
+  if (res.ok && body.ok) {
+    return {
+      ok: true,
+      credits: body.credits ?? 0,
+      tier: body.tier ?? tier,
+      membershipUntil: body.membershipUntil ?? "",
+    };
+  }
+  return {
+    ok: false,
+    code: body.error?.code ?? "MEMBERSHIP_FAILED",
+    message: body.error?.message ?? body.message,
+  };
+}
+
 /** Verify a cUSD transfer (by tx hash) and credit the matching pack. */
 export async function depositCelo(
   txHash: string,
