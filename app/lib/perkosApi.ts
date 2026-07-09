@@ -429,6 +429,11 @@ export type BillingMe = {
   rewardClaimable?: boolean;
   rewardTarget?: number;
   lastRewardClaimMonth?: string | null;
+  /** Tier ("free" | "basic" | "pro") + monthly-analysis budget. */
+  membershipTier?: "free" | "basic" | "pro";
+  analysesUsed?: number;
+  monthlyAnalysisCap?: number;
+  analysesLeft?: number;
 };
 
 export async function getBillingMe(): Promise<BillingMe> {
@@ -457,10 +462,13 @@ export async function claimReward(): Promise<ClaimRewardResult> {
   return { ok: false, code: body.error?.code ?? "CLAIM_FAILED", balance: body.error?.balance };
 }
 
+export type MembershipTierInfo = { usd: number; credits: number; monthlyAnalysisCap: number };
+
 export type CreditPacks = {
   creditUsd: number;
   packs: Array<{ usd: number; credits: number }>;
   membership: { usd: number; credits: number };
+  tiers?: { basic: MembershipTierInfo; pro: MembershipTierInfo };
 };
 
 export async function getPacks(): Promise<CreditPacks> {

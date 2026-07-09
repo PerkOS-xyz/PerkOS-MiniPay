@@ -76,9 +76,11 @@ export function Dashboard({
   const onlineCount = projects.filter(isOnline).length;
 
   const credits = billing?.credits ?? 0;
-  const perMonth = billing?.freeWorkflowsPerMonth ?? 3;
-  const freeLeft = billing?.freeWorkflowsLeft ?? perMonth;
   const exempt = billing?.exempt ?? false;
+  const tier = billing?.membershipTier ?? "free";
+  const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1);
+  const analysesLeft = billing?.analysesLeft;
+  const analysisCap = billing?.monthlyAnalysisCap;
 
   return (
     <div className="flex flex-col gap-6">
@@ -91,10 +93,16 @@ export function Dashboard({
           secondary={billing ? `≈ $${(credits * CREDIT_USD).toFixed(2)}` : ""}
         />
         <Stat
-          emoji="🎁"
-          label="Free this month"
-          value={billing ? (exempt ? "∞" : `${freeLeft}/${perMonth}`) : null}
-          secondary={exempt ? "Sponsored" : "No credits needed"}
+          emoji="🎟️"
+          label="Plan"
+          value={billing ? (exempt ? "Sponsored" : tierLabel) : null}
+          secondary={
+            exempt
+              ? "Unlimited"
+              : analysesLeft != null && analysisCap != null
+                ? `${analysesLeft}/${analysisCap} analyses left`
+                : "this month"
+          }
         />
         <Stat
           emoji="🧰"
