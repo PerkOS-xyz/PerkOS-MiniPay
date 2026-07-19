@@ -6,6 +6,7 @@ import { celo } from "wagmi/chains";
 import { formatUnits } from "viem";
 
 import { CUSD, USDC, USDT, type TokenInfo } from "../lib/tokenAddresses";
+import { selectPaymentToken } from "../lib/selectPaymentToken";
 import { usePayCusd } from "../lib/usePayCusd";
 import { ensureServerWallet } from "../lib/perkosApi";
 
@@ -26,7 +27,7 @@ const ERC20_BALANCE_ABI = [
  * cUSD/USDT/USDC balance (read client-side — MiniPay's working currency is cUSD,
  * whereas the API's /wallet/balances tracks USDC + $PERKOS for the main app).
  */
-export function ServerWallet() {
+export function ServerWallet({ address }: { address: string }) {
   const { pay, ready } = usePayCusd();
   const [addr, setAddr] = useState<`0x${string}` | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
@@ -46,25 +47,34 @@ export function ServerWallet() {
       });
   }, []);
 
-  function useBal(token: TokenInfo) {
+  function useBal(token: TokenInfo, owner: `0x${string}` | null) {
     const { data, refetch } = useReadContract({
       address: token.address,
       abi: ERC20_BALANCE_ABI,
       functionName: "balanceOf",
-      args: addr ? [addr] : undefined,
+      args: owner ? [owner] : undefined,
       chainId: celo.id,
-      query: { enabled: Boolean(addr) },
+      query: { enabled: Boolean(owner) },
     });
     const value = data !== undefined ? Number(formatUnits(data as bigint, token.decimals)) : undefined;
     return { value, refetch };
   }
-  const cusd = useBal(CUSD);
-  const usdt = useBal(USDT);
-  const usdc = useBal(USDC);
+  const cusd = useBal(CUSD, addr);
+  const usdt = useBal(USDT, addr);
+  const usdc = useBal(USDC, addr);
+  const payer = address as `0x${string}`;
+  const payerCusd = useBal(CUSD, payer);
+  const payerUsdt = useBal(USDT, payer);
+  const payerUsdc = useBal(USDC, payer);
+  const payerReady =
+    payerCusd.value !== undefined || payerUsdt.value !== undefined || payerUsdc.value !== undefined;
   const refetch = () => {
     cusd.refetch();
     usdt.refetch();
     usdc.refetch();
+    payerCusd.refetch();
+    payerUsdt.refetch();
+    payerUsdc.refetch();
   };
   const ready3 = cusd.value !== undefined || usdt.value !== undefined || usdc.value !== undefined;
   const spendable = (cusd.value ?? 0) + (usdt.value ?? 0) + (usdc.value ?? 0);
@@ -82,21 +92,21 @@ export function ServerWallet() {
 
   // Pay with the stablecoin the user actually holds (MiniPay defaults to USDT).
   function payTokenFor(usd: number): TokenInfo | null {
-    const opts: Array<[TokenInfo, number]> = [
-      [USDT, usdt.value ?? 0],
-      [CUSD, cusd.value ?? 0],
-      [USDC, usdc.value ?? 0],
-    ];
-    // Balances here are the SERVER wallet's; for choosing a deposit token we
-    // just need a valid stablecoin — usePayCusd sends from the user's wallet
-    // and will fail loudly if they lack funds.
-    return opts.sort((a, b) => b[1] - a[1])[0]?.[0] ?? USDT;
+    return selectPaymentToken(usd, [
+      { token: USDT, balance: payerUsdt.value },
+      { token: CUSD, balance: payerCusd.value },
+      { token: USDC, balance: payerUsdc.value },
+    ]);
   }
 
   async function deposit(usd: number) {
     if (!addr) return;
     setMsg(null);
-    const token = payTokenFor(usd) ?? USDT;
+    const token = payTokenFor(usd);
+    if (!token) {
+      setMsg(`You need at least $${usd} in USDT, cUSD or USDC to deposit.`);
+      return;
+    }
     setBusy(true);
     try {
       setMsg(`Depositing $${usd} ${token.symbol}…`);
@@ -156,7 +166,7 @@ export function ServerWallet() {
                   key={usd}
                   type="button"
                   onClick={() => deposit(usd)}
-                  disabled={busy || !ready || !addr}
+                  disabled={busy || !ready || !addr || !payerReady}
                   className="flex-1 rounded-xl bg-[var(--accent)] px-3 py-2.5 text-sm font-medium text-white disabled:opacity-50"
                 >
                   ${usd.toFixed(2)}
