@@ -5,6 +5,7 @@ import { useReadContract } from "wagmi";
 import { celo } from "wagmi/chains";
 import { formatUnits } from "viem";
 import { CUSD, USDC, USDT, type TokenInfo } from "../lib/tokenAddresses";
+import { selectPaymentToken } from "../lib/selectPaymentToken";
 import { usePayCusd } from "../lib/usePayCusd";
 import {
   getBillingMe,
@@ -76,13 +77,11 @@ export function WalletPanel({ address, compact = false }: { address: string; com
   // Pay with the stablecoin the user actually holds — highest balance that
   // covers the pack (MiniPay users hold USDT, so this avoids the cUSD-only trap).
   function payTokenFor(usd: number): TokenInfo | null {
-    const opts: Array<[TokenInfo, number]> = [
-      [USDT, usdtBal.value ?? 0],
-      [CUSD, cusdBal.value ?? 0],
-      [USDC, usdcBal.value ?? 0],
-    ];
-    const covering = opts.filter(([, bal]) => bal >= usd).sort((a, b) => b[1] - a[1]);
-    return covering[0]?.[0] ?? null;
+    return selectPaymentToken(usd, [
+      { token: USDT, balance: usdtBal.value },
+      { token: CUSD, balance: cusdBal.value },
+      { token: USDC, balance: usdcBal.value },
+    ]);
   }
 
   async function buyPack(pack: { usd: number; credits: number }) {

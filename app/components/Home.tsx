@@ -216,7 +216,7 @@ export function Home({ address }: { address: string }) {
     return (
       <main className="flex flex-col gap-5 px-5 py-7">
         {header}
-        <ServerWallet />
+        <ServerWallet address={address} />
         <button
           onClick={() => setView("list")}
           className="text-sm text-[var(--muted)] underline-offset-2 hover:underline"

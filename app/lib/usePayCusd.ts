@@ -18,9 +18,7 @@ import { DynamicWalletContext } from "./dynamicWallet";
  * may sit on another network — we switch to Celo before sending.
  *
  * Settlement (crediting the user's balance for pay-as-you-go) is verified
- * server-side from the returned tx hash. TODO: wire the settlement endpoint
- * once PerkOS-API exposes a Celo cUSD-deposit verifier (today billing is x402
- * on Base).
+ * server-side from the returned transaction hash by the MiniPay billing API.
  */
 export function usePayCusd() {
   const dyn = useContext(DynamicWalletContext);

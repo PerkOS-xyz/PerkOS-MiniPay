@@ -50,5 +50,5 @@ export const STABLECOINS: Record<string, TokenInfo> = {
   USDT,
 };
 
-/** MiniPay currently abstracts gas through cUSD only. */
+/** Default fee currency when a caller has not selected a payment token. */
 export const FEE_CURRENCY: `0x${string}` = CUSD.address;
