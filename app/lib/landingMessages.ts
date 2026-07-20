@@ -50,11 +50,11 @@ export type LandingCopy = {
 };
 
 const en: LandingCopy = {
-  eyebrow: "MiniPay business helper",
+  eyebrow: "Meet Lina, your business companion",
   hero: {
-    headline: "A smart helper for your business, right inside MiniPay",
+    headline: "Your business, clearer every day",
     subhead:
-      "It logs your sales, drafts your invoices, and chases late payments, so you don't have to. You approve every step, and your money never leaves your wallet.",
+      "Lina logs sales, prepares invoices, and follows up on late payments with you. You approve every step, and your money never leaves your wallet.",
     ctaPrimary: "Get started free",
     ctaSecondary: "See what it can do",
     enterApp: "Open the app",
@@ -74,15 +74,15 @@ const en: LandingCopy = {
     title: "How it works",
     steps: [
       { title: "Open it in MiniPay", desc: "No signup, no seed phrase. Your wallet is already there." },
-      { title: "Pick a ready-made helper", desc: "It activates instantly. Nothing to install or wait for." },
-      { title: "Give it a goal, see the cost", desc: "It proposes a plan and a small credit estimate. You approve it." },
-      { title: "It does the work", desc: "It hands you what's ready. You make any payment yourself in MiniPay." },
+      { title: "Tell Lina what you need", desc: "Speak or type naturally. Nothing new to learn." },
+      { title: "See the plan and cost", desc: "Lina shows the steps and a small credit estimate. You approve it." },
+      { title: "Get something useful", desc: "Lina hands you what's ready. You make any payment yourself in MiniPay." },
     ],
     key: "It prepares the work. You stay in control of the money.",
   },
   templates: {
     title: "What it does for you",
-    subtitle: "Ready-made helpers you can turn on in one tap.",
+    subtitle: "Practical skills you can add to Lina in one tap.",
     more: "See 2 more",
     items: [
       { emoji: "🧾", title: "Merchant Daily", benefit: "Log every sale in seconds and get your profit added up at the end of each week." },
@@ -122,17 +122,17 @@ const en: LandingCopy = {
   },
   minipay: {
     title: "On your phone with MiniPay?",
-    body: "Open the MiniPay app, go to Mini Apps, and find PerkOS there for the native experience.",
+    body: "Open the MiniPay app, go to Mini Apps, and find Lina there for the native experience.",
   },
-  footer: { built: "Built on Celo", rights: "PerkOS" },
+  footer: { built: "Built on Celo", rights: "Lina by PerkOS" },
 };
 
 const es: LandingCopy = {
-  eyebrow: "Asistente de negocio en MiniPay",
+  eyebrow: "Conoce a Lina, tu compañera de negocio",
   hero: {
-    headline: "Un asistente inteligente para tu negocio, dentro de MiniPay",
+    headline: "Tu negocio, más claro cada día",
     subhead:
-      "Registra tus ventas, prepara tus facturas y les recuerda a quienes te deben, para que no tengas que hacerlo tú. Tú apruebas cada paso, y tu dinero nunca sale de tu wallet.",
+      "Lina registra ventas, prepara facturas y te ayuda a cobrar lo pendiente. Tú apruebas cada paso, y tu dinero nunca sale de tu wallet.",
     ctaPrimary: "Empieza gratis",
     ctaSecondary: "Mira lo que hace",
     enterApp: "Abrir la app",
@@ -152,15 +152,15 @@ const es: LandingCopy = {
     title: "Cómo funciona",
     steps: [
       { title: "Ábrelo en MiniPay", desc: "Sin registro, sin frase semilla. Tu wallet ya está ahí." },
-      { title: "Elige un asistente listo", desc: "Se activa al instante. Nada que instalar ni esperar." },
-      { title: "Dale un objetivo y ve el costo", desc: "Te propone un plan y un pequeño estimado en créditos. Tú lo apruebas." },
-      { title: "Hace el trabajo", desc: "Te entrega lo que está listo. Tú haces cualquier pago desde MiniPay." },
+      { title: "Cuéntale a Lina qué necesitas", desc: "Habla o escribe con naturalidad. Nada nuevo que aprender." },
+      { title: "Revisa el plan y el costo", desc: "Lina te muestra los pasos y un pequeño estimado en créditos. Tú lo apruebas." },
+      { title: "Recibe algo útil", desc: "Lina te entrega lo que está listo. Tú haces cualquier pago desde MiniPay." },
     ],
     key: "Prepara el trabajo. Tú tienes el control del dinero.",
   },
   templates: {
     title: "Lo que hace por ti",
-    subtitle: "Asistentes listos que activas con un toque.",
+    subtitle: "Capacidades prácticas que agregas a Lina con un toque.",
     more: "Ver 2 más",
     items: [
       { emoji: "🧾", title: "Comercio Diario", benefit: "Registra cada venta en segundos y ve tu ganancia sumada al final de la semana." },
@@ -200,9 +200,9 @@ const es: LandingCopy = {
   },
   minipay: {
     title: "¿En tu teléfono con MiniPay?",
-    body: "Abre la app de MiniPay, ve a Mini Apps y busca PerkOS ahí para la experiencia nativa.",
+    body: "Abre la app de MiniPay, ve a Mini Apps y busca Lina para la experiencia nativa.",
   },
-  footer: { built: "Construido en Celo", rights: "PerkOS" },
+  footer: { built: "Construido en Celo", rights: "Lina by PerkOS" },
 };
 
 export const MESSAGES: Record<Locale, LandingCopy> = { en, es };
