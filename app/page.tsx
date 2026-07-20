@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useMemo, useState, type ReactNode } from "react";
+import { useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import nextDynamic from "next/dynamic";
 import { useConnect } from "wagmi";
 import { useMiniPayHost } from "./lib/useIsMiniPay";
@@ -12,6 +12,8 @@ import { Brand } from "./components/Brand";
 import { ConnectButton } from "./components/ConnectButton";
 import { AccessGate } from "./components/AccessGate";
 import { MiniPayLanding } from "./components/landing/MiniPayLanding";
+import { LanguageSelect } from "./components/LanguageSelect";
+import { useLanguage } from "./lib/i18n";
 
 // Lazy — pulls @dynamic-labs only in the browser host (the chunk is shared
 // with DynamicProviders, which is mounted under the same condition).
@@ -27,6 +29,7 @@ const LandingWithDynamic = nextDynamic(
 );
 
 export default function Page() {
+  const { locale } = useLanguage();
   const isMiniPayHost = useMiniPayHost();
   const { status, address, error, isConnected } = useWalletSession();
   const dyn = useContext(DynamicWalletContext);
@@ -65,10 +68,15 @@ export default function Page() {
     // MiniPay webview connecting / mid-connect / errors → minimal gate.
     content = (
       <main className="flex min-h-[100dvh] flex-col items-center justify-center gap-3 px-6 text-center">
+        <div className="absolute right-5 top-5"><LanguageSelect compact /></div>
         <Brand className="mb-2 justify-center" />
-        <h1 className="text-2xl font-semibold">Money &amp; customer tools</h1>
+        <h1 className="text-2xl font-semibold">
+          {locale === "es" ? "Herramientas para dinero y clientes" : "Money & customer tools"}
+        </h1>
         <p className="text-sm text-[var(--muted)]">
-          Simple helpers for your business, inside your wallet. Pay only for the work.
+          {locale === "es"
+            ? "Asistentes simples para tu negocio, dentro de tu wallet. Paga solo por el trabajo."
+            : "Simple helpers for your business, inside your wallet. Pay only for the work."}
         </p>
         <GateAction
           status={status}
@@ -97,6 +105,8 @@ function GateAction({
   error: string | null;
   address?: string;
 }) {
+  const { locale } = useLanguage();
+  const es = locale === "es";
   const note = (text: string, danger = false) => (
     <p className={`mt-2 max-w-xs text-xs ${danger ? "text-red-300" : "text-[var(--muted)]"}`}>{text}</p>
   );
@@ -108,19 +118,71 @@ function GateAction({
     return address ? (
       <AccessGate address={address} />
     ) : (
-      note("This wallet isn't on the access list yet.")
+      note(es ? "Esta wallet todavía no está en la lista de acceso." : "This wallet isn't on the access list yet.")
     );
   }
-  if (status === "error") return note(`Sign-in failed: ${error ?? "unknown error"}`, true);
+  if (status === "error") return note(`${es ? "El inicio de sesión falló" : "Sign-in failed"}: ${error ?? (es ? "error desconocido" : "unknown error")}`, true);
   if (isConnected || status === "syncing") {
-    return note(
-      isMiniPayHost ? "Signing you in… approve the request in MiniPay." : "Signing you in…",
+    return (
+      <div className="mt-3 w-full max-w-xs rounded-2xl border border-white/10 bg-white/5 p-4 text-left">
+        <p className="text-sm font-medium">
+          {es ? "Wallet conectada" : "Wallet connected"}
+        </p>
+        <div className="mt-3 flex items-start gap-3">
+          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[var(--accent)]/20 text-xs text-[var(--accent)]">2</span>
+          <div>
+            <p className="text-sm font-medium">{es ? "Confirma que eres tú" : "Confirm it's you"}</p>
+            <p className="mt-0.5 text-xs leading-relaxed text-foreground/65">
+              {isMiniPayHost
+                ? es
+                  ? "Aprueba la firma sin gas en MiniPay. No mueve dinero."
+                  : "Approve the gas-free signature in MiniPay. It does not move money."
+                : es
+                  ? "Aprueba la firma sin gas en tu wallet para entrar. No mueve dinero."
+                  : "Approve the gas-free signature in your wallet to sign in. It does not move money."}
+            </p>
+          </div>
+        </div>
+      </div>
     );
   }
-  if (isMiniPayHost) return note("Connecting your wallet…");
-  if (isMiniPayHost === null) return note("Loading…");
+  if (isMiniPayHost) {
+    return <MiniPayConnectStatus />;
+  }
+  if (isMiniPayHost === null) return note(es ? "Cargando…" : "Loading…");
 
   return <BrowserGate />;
+}
+
+function MiniPayConnectStatus() {
+  const { locale } = useLanguage();
+  const es = locale === "es";
+  const [isSlow, setIsSlow] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setIsSlow(true), 10_000);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  return (
+    <div className="mt-3 flex max-w-xs flex-col items-center gap-3">
+      <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-[var(--accent)]" aria-hidden />
+      <p className="text-xs leading-relaxed text-foreground/65">
+        {es
+          ? "Conectando automáticamente la wallet de MiniPay…"
+          : "Connecting your MiniPay wallet automatically…"}
+      </p>
+      {isSlow ? (
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium hover:bg-white/15"
+        >
+          {es ? "Reintentar" : "Try again"}
+        </button>
+      ) : null}
+    </div>
+  );
 }
 
 /**

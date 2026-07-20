@@ -28,6 +28,8 @@ import { TemplateGallery } from "./TemplateGallery";
 import { NeedToday } from "./NeedToday";
 import { TeamThread } from "./TeamThread";
 import { ServerWallet } from "./ServerWallet";
+import { LanguageSelect } from "./LanguageSelect";
+import { useLanguage } from "../lib/i18n";
 
 type Loaded = {
   agents: Agent[];
@@ -39,6 +41,24 @@ type Loaded = {
 };
 
 export function Home({ address }: { address: string }) {
+  const { locale } = useLanguage();
+  const copy = locale === "es"
+    ? {
+        loading: "Cargando…",
+        teamWallet: "Wallet del equipo",
+        logout: "Cerrar sesión",
+        addHelper: "Agregar un asistente",
+        addHelperSub: "Más asistentes para dinero y clientes. Solo pagas por el trabajo.",
+        back: "‹ Volver a mi equipo",
+      }
+    : {
+        loading: "Loading…",
+        teamWallet: "Team wallet",
+        logout: "Log out",
+        addHelper: "Add a helper",
+        addHelperSub: "More money and customer helpers for your business. You only pay for the work.",
+        back: "‹ Back to my team",
+      };
   // Logout is browser-only: inside MiniPay the wallet is the host identity
   // and connection is implicit (rule C1) — no logout affordance there.
   const isMiniPay = useIsMiniPay();
@@ -84,7 +104,7 @@ export function Home({ address }: { address: string }) {
   if (!data) {
     return (
       <main className="px-5 py-10 text-center text-sm text-[var(--muted)]">
-        {error ?? "Loading…"}
+        {error ?? copy.loading}
       </main>
     );
   }
@@ -122,18 +142,19 @@ export function Home({ address }: { address: string }) {
         <Brand />
       </button>
       <div className="flex items-center gap-3">
+        <LanguageSelect compact />
         <button
           onClick={() => setView("wallet")}
           className="text-xs text-[var(--muted)] underline-offset-2 hover:underline"
         >
-          Team wallet
+          {copy.teamWallet}
         </button>
         {!isMiniPay && (
           <button
             onClick={logout}
             className="text-xs text-[var(--muted)] underline-offset-2 hover:underline"
           >
-            Log out
+            {copy.logout}
           </button>
         )}
       </div>
@@ -187,10 +208,8 @@ export function Home({ address }: { address: string }) {
       <main className="flex flex-col gap-5 px-5 py-7">
         {header}
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold">Add a helper</h1>
-          <p className="text-sm text-[var(--muted)]">
-            More money and customer helpers for your business — you only pay for the work.
-          </p>
+          <h1 className="text-2xl font-semibold">{copy.addHelper}</h1>
+          <p className="text-sm text-[var(--muted)]">{copy.addHelperSub}</p>
         </div>
         <WalletPanel address={address} />
         <TemplateGallery
@@ -205,7 +224,7 @@ export function Home({ address }: { address: string }) {
           onClick={() => setView("list")}
           className="text-sm text-[var(--muted)] underline-offset-2 hover:underline"
         >
-          ‹ Back to my team
+          {copy.back}
         </button>
       </main>
     );
@@ -221,7 +240,7 @@ export function Home({ address }: { address: string }) {
           onClick={() => setView("list")}
           className="text-sm text-[var(--muted)] underline-offset-2 hover:underline"
         >
-          ‹ Back to my team
+          {copy.back}
         </button>
       </main>
     );
@@ -269,6 +288,10 @@ function ProjectView({
   onOpenChat: (agentName: string) => void;
   onAddCredits: () => void;
 }) {
+  const { locale } = useLanguage();
+  const teamLabel = locale === "es"
+    ? "Tu equipo · toca un asistente para hablar a solas"
+    : "Your team · tap a helper to talk to them alone";
   return (
     <main className="flex h-[100dvh] flex-col px-5 pb-3 pt-4">
       <header className="flex items-center gap-3">
@@ -278,9 +301,10 @@ function ProjectView({
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-lg font-semibold">{template?.name ?? project.name}</h1>
           <p className="truncate text-xs text-[var(--muted)]">
-            Your team · tap a helper to talk to them alone
+            {teamLabel}
           </p>
         </div>
+        <LanguageSelect compact />
       </header>
 
       {/* The fleet is your team. Tapping a helper opens a 1:1 (optional); the

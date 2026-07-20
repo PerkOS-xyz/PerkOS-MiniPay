@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useChatConversation } from "../lib/useChatConversation";
+import { useLanguage } from "../lib/i18n";
+import { LanguageSelect } from "./LanguageSelect";
 
 export function AgentChat({
   projectId,
@@ -20,6 +22,7 @@ export function AgentChat({
   glyph?: string;
   onBack: () => void;
 }) {
+  const { locale } = useLanguage();
   const display = label ?? agentName;
   // The project conversation the activation created (project-{id}); the user
   // + the template's basics are participants. Messages + agent replies stream
@@ -58,15 +61,18 @@ export function AgentChat({
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium leading-tight">{display}</p>
           <p className="text-xs text-[var(--muted)]">
-            {connecting ? "Connecting…" : "Your helper"}
+            {connecting
+              ? locale === "es" ? "Conectando…" : "Connecting…"
+              : locale === "es" ? "Tu asistente" : "Your helper"}
           </p>
         </div>
+        <LanguageSelect compact />
       </header>
 
       <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 py-3">
         {messages.length === 0 && (
           <p className="mt-8 text-center text-xs text-[var(--muted)]">
-            Say hi to {display} or ask for help.
+            {locale === "es" ? `Saluda a ${display} o pide ayuda.` : `Say hi to ${display} or ask for help.`}
           </p>
         )}
         {messages.map((m) => {
@@ -90,7 +96,7 @@ export function AgentChat({
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && onSend()}
-          placeholder={`Message ${display}…`}
+          placeholder={locale === "es" ? `Mensaje para ${display}…` : `Message ${display}…`}
           className="flex-1 rounded-2xl bg-white/5 px-3 py-2 text-sm outline-none"
         />
         <button
@@ -98,7 +104,7 @@ export function AgentChat({
           disabled={!text.trim()}
           className="rounded-2xl bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
         >
-          Send
+          {locale === "es" ? "Enviar" : "Send"}
         </button>
       </div>
     </main>

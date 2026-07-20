@@ -11,6 +11,8 @@ import {
   type WorkflowTask,
 } from "../lib/perkosApi";
 import { useVoiceInput } from "../lib/useVoiceInput";
+import { creditsToUsd } from "../lib/credits";
+import { useLanguage } from "../lib/i18n";
 
 /**
  * The "one door": a single conversational thread with the team, with a
@@ -50,11 +52,10 @@ type Bubble =
 let seq = 0;
 const uid = () => `b${(seq += 1)}`;
 
-const STARTERS = [
-  "How much did I earn this week?",
-  "Who owes me money?",
-  "Send a payment reminder",
-];
+const STARTERS = {
+  en: ["How much did I earn this week?", "Who owes me money?", "Send a payment reminder"],
+  es: ["¿Cuánto gané esta semana?", "¿Quién me debe dinero?", "Enviar un recordatorio de pago"],
+};
 
 export function TeamThread({
   projectId,
@@ -65,10 +66,85 @@ export function TeamThread({
   initialGoal?: string | null;
   onAddCredits?: () => void;
 }) {
+  const { locale } = useLanguage();
+  const t = locale === "es"
+    ? {
+        greeting: "Hola, soy tu equipo. Dime qué necesitas y te mostraré el costo antes de hacer algo. Tus primeros trabajos de cada mes son gratis.",
+        more: "Cuéntame un poco más y te ayudaré.",
+        failed: "Lo siento, no pude hacerlo ahora. Inténtalo nuevamente.",
+        workingJobs: "Ya empezamos. Tu equipo está trabajando y guardaré los resultados en tus trabajos.",
+        insufficient: (need?: number, have?: number) => `No tienes suficientes créditos. Necesitas ${need}, tienes ${have}. Agrega fondos para continuar.`,
+        tooLarge: (max?: number) => `Es un trabajo grande (máximo ${max} a la vez). Intenta dividirlo en solicitudes más pequeñas.`,
+        startFailed: "No se pudo iniciar. Inténtalo nuevamente.",
+        unlockInsufficient: (need?: number, have?: number) => `Necesitas ${need} créditos para desbloquearlo y tienes ${have}. Agrega fondos o mejora tu plan.`,
+        finishing: "Todavía estamos terminando. Un momento.",
+        unlockFailed: "No se pudo desbloquear ahora. Inténtalo nuevamente.",
+        plan: "Esto es lo que haré:",
+        cost: "Costo máximo",
+        free: "Gratis",
+        freeLeft: (n: number) => `${n} gratis este mes`,
+        balance: (n: number) => `Tienes ${n} créditos`,
+        started: "Iniciado",
+        working: "Tu equipo está trabajando…",
+        preview: "Tu equipo terminó. Aquí tienes un adelanto",
+        locked: "Bloqueado",
+        unlock: (n: number) => `Desbloquear resultados · ${n} créditos`,
+        addUnlock: (n: number) => `Agregar fondos para desbloquear · necesitas ${n}`,
+        unlocking: "Desbloqueando…",
+        done: "Listo",
+        addRun: "Agregar fondos para ejecutarlo",
+        decline: "Ahora no",
+        starting: "Iniciando…",
+        approveFree: "Sí, hazlo gratis",
+        approve: (n: number) => `Aprobar · ${n} créditos ($${creditsToUsd(n)})`,
+        stop: "Dejar de escuchar",
+        speak: "Hablar",
+        listening: "Escuchando…",
+        placeholder: "Escribe lo que necesitas…",
+        send: "Enviar",
+        workingLabel: "Trabajando",
+      }
+    : {
+        greeting: "Hi, I'm your team. Tell me what you need, and I'll show the cost before doing anything. Your first jobs each month are free.",
+        more: "Tell me a bit more and I'll help.",
+        failed: "Sorry, I couldn't do that just now. Please try again.",
+        workingJobs: "On it. Your team is working now, and I'll keep the results in your jobs.",
+        insufficient: (need?: number, have?: number) => `Not enough credits. You need ${need} and have ${have}. Add funds to run it.`,
+        tooLarge: (max?: number) => `That's a big job (max ${max} at once). Try breaking it into smaller asks.`,
+        startFailed: "Couldn't start that. Please try again.",
+        unlockInsufficient: (need?: number, have?: number) => `You need ${need} credits to unlock it and have ${have}. Add funds or upgrade.`,
+        finishing: "Still finishing. One moment.",
+        unlockFailed: "Couldn't unlock just now. Please try again.",
+        plan: "Here's what I'll do:",
+        cost: "Maximum cost",
+        free: "Free",
+        freeLeft: (n: number) => `${n} free this month`,
+        balance: (n: number) => `You have ${n} credits`,
+        started: "Started",
+        working: "Your team is working…",
+        preview: "Your team finished. Here's a preview",
+        locked: "Locked",
+        unlock: (n: number) => `Unlock full results · ${n} credits`,
+        addUnlock: (n: number) => `Add funds to unlock · need ${n}`,
+        unlocking: "Unlocking…",
+        done: "Done",
+        addRun: "Add funds to run it",
+        decline: "No thanks",
+        starting: "Starting…",
+        approveFree: "Yes, do it free",
+        approve: (n: number) => `Approve · ${n} credits ($${creditsToUsd(n)})`,
+        stop: "Stop listening",
+        speak: "Speak",
+        listening: "Listening…",
+        placeholder: "Type what you need…",
+        send: "Send",
+        workingLabel: "Working",
+      };
   const [items, setItems] = useState<Bubble[]>([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const greetingId = useRef(uid());
   const mounted = useRef(true);
   const polling = useRef<Set<string>>(new Set());
   const voice = useVoiceInput({
@@ -91,15 +167,27 @@ export function TeamThread({
   useEffect(() => {
     setItems([
       {
-        id: uid(),
+        id: greetingId.current,
         kind: "team",
-        text: "Hi, I'm your team. Tell me what you need, and I'll show the cost before doing anything. Your first jobs each month are free.",
+        text: t.greeting,
       },
     ]);
     const g = initialGoal?.trim();
     if (g) void handleSend(g);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Keep the built-in greeting in sync when the user changes language without
+  // touching real user/agent messages already in the conversation.
+  useEffect(() => {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === greetingId.current && item.kind === "team"
+          ? { ...item, text: t.greeting }
+          : item,
+      ),
+    );
+  }, [locale]);
 
   function put(...b: Bubble[]) {
     setItems((prev) => [...prev, ...b]);
@@ -127,7 +215,7 @@ export function TeamThread({
         replace(typingId, {
           id: uid(),
           kind: "team",
-          text: res.chat || "Tell me a bit more and I'll help.",
+          text: res.chat || t.more,
         });
       } else {
         const view = await getWorkflow(projectId, res.docId);
@@ -150,7 +238,7 @@ export function TeamThread({
       replace(typingId, {
         id: uid(),
         kind: "team",
-        text: "Sorry, I couldn't do that just now. Please try again.",
+        text: t.failed,
       });
     } finally {
       setBusy(false);
@@ -172,24 +260,24 @@ export function TeamThread({
           put({
             id: uid(),
             kind: "team",
-            text: "On it — your team is working on this now. I'll keep the results in your jobs.",
+            text: t.workingJobs,
           });
         }
       } else if (res.code === "INSUFFICIENT_CREDITS") {
         patchPlan(item.id, {
           state: "proposed",
-          note: `Not enough cUSD credits — need ${res.need}, have ${res.have}. Add cUSD to run it.`,
+          note: t.insufficient(res.need, res.have),
         });
       } else if (res.code === "WORKFLOW_TOO_LARGE") {
         patchPlan(item.id, {
           state: "proposed",
-          note: `That's a big job (max ${res.max} at once). Try breaking it into smaller asks.`,
+          note: t.tooLarge(res.max),
         });
       } else {
-        patchPlan(item.id, { state: "proposed", note: "Couldn't start that. Please try again." });
+        patchPlan(item.id, { state: "proposed", note: t.startFailed });
       }
     } catch {
-      patchPlan(item.id, { state: "proposed", note: "Couldn't start that. Please try again." });
+      patchPlan(item.id, { state: "proposed", note: t.startFailed });
     }
   }
 
@@ -241,16 +329,16 @@ export function TeamThread({
         patchPlan(item.id, {
           state: "preview",
           canAfford: false,
-          note: `Need ${res.need} credits to unlock, you have ${res.have}. Add cUSD or upgrade.`,
+          note: t.unlockInsufficient(res.need, res.have),
         });
       } else if (res.code === "NOT_READY") {
-        patchPlan(item.id, { state: "running", note: "Still finishing — one moment." });
+        patchPlan(item.id, { state: "running", note: t.finishing });
         void pollUntilPreview(item.id, item.docId);
       } else {
-        patchPlan(item.id, { state: "preview", note: "Couldn't unlock just now. Please try again." });
+        patchPlan(item.id, { state: "preview", note: t.unlockFailed });
       }
     } catch {
-      patchPlan(item.id, { state: "preview", note: "Couldn't unlock just now. Please try again." });
+      patchPlan(item.id, { state: "preview", note: t.unlockFailed });
     }
   }
 
@@ -280,7 +368,7 @@ export function TeamThread({
           if (b.kind === "typing") {
             return (
               <div key={b.id} className="self-start rounded-2xl rounded-bl-md bg-white/10 px-4 py-3 text-sm text-[var(--muted)]">
-                <span className="inline-flex gap-1" aria-label="Working">
+                <span className="inline-flex gap-1" aria-label={t.workingLabel}>
                   <Dot /> <Dot /> <Dot />
                 </span>
               </div>
@@ -290,7 +378,7 @@ export function TeamThread({
           return (
             <div key={b.id} className="max-w-[92%] self-start rounded-2xl rounded-bl-md border border-[var(--accent)]/40 bg-white/5 p-3.5">
               {b.chat && <p className="mb-2 text-sm">{b.chat}</p>}
-              <p className="mb-1 text-xs font-medium text-[var(--muted)]">Here&apos;s what I&apos;ll do:</p>
+              <p className="mb-1 text-xs font-medium text-[var(--muted)]">{t.plan}</p>
               <ul className="mb-2 flex flex-col gap-1">
                 {b.tasks.map((t, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm">
@@ -300,48 +388,48 @@ export function TeamThread({
                 ))}
               </ul>
               <div className="flex items-center justify-between border-t border-white/10 pt-2 text-sm">
-                <span className="text-[var(--muted)]">Cost</span>
+                <span className="text-[var(--muted)]">{t.cost}</span>
                 <span className="font-semibold">
                   {b.freeEligible ? (
                     <>
-                      <span className="text-[#4ade80]">Free</span>{" "}
+                      <span className="text-[#4ade80]">{t.free}</span>{" "}
                       <span className="text-xs font-normal text-[var(--muted)]">
-                        · {b.freeLeft} free left this month
+                        · {t.freeLeft(b.freeLeft)}
                       </span>
                     </>
                   ) : (
-                    <>≈ {b.estimateCredits} credits</>
+                    <>{b.estimateCredits} credits · ≈ ${creditsToUsd(b.estimateCredits)} max</>
                   )}
                 </span>
               </div>
               {!b.freeEligible && (
-                <p className="mt-0.5 text-right text-xs text-[var(--muted)]">You have {b.credits} credits</p>
+                <p className="mt-0.5 text-right text-xs text-[var(--muted)]">{t.balance(b.credits)}</p>
               )}
               {b.note && (
                 <p className="mt-2 rounded-xl bg-red-400/10 p-2 text-center text-xs text-red-200">{b.note}</p>
               )}
 
               {b.state === "done" ? (
-                <p className="mt-2 text-center text-xs text-[#4ade80]">✓ Started</p>
+                <p className="mt-2 text-center text-xs text-[#4ade80]">✓ {t.started}</p>
               ) : b.state === "running" ? (
                 <div className="mt-2 flex items-center justify-center gap-2 text-xs text-[var(--muted)]">
-                  <span className="inline-flex gap-1" aria-label="Working">
+                  <span className="inline-flex gap-1" aria-label={t.workingLabel}>
                     <Dot /> <Dot /> <Dot />
                   </span>
-                  Your team is working…
+                  {t.working}
                   {b.progress ? ` (${b.progress.tasksDone}/${b.progress.tasksTotal})` : ""}
                 </div>
               ) : b.state === "preview" ? (
                 <div className="mt-2 flex flex-col gap-2">
                   <p className="text-center text-xs font-medium text-[#4ade80]">
-                    ✓ Your team finished — here&apos;s a taste
+                    ✓ {t.preview}
                   </p>
                   <ul className="flex flex-col gap-1.5">
                     {(b.preview ?? []).map((p) => (
                       <li key={p.taskId} className="rounded-xl bg-white/5 p-2 text-sm">
                         <div className="flex items-center justify-between gap-2">
                           <span className="min-w-0 flex-1 font-medium">{p.title}</span>
-                          <span className="shrink-0 text-[var(--muted)]" aria-label="Locked">🔒</span>
+                          <span className="shrink-0 text-[var(--muted)]" aria-label={t.locked}>🔒</span>
                         </div>
                         {p.snippet && (
                           <p className="mt-0.5 text-xs text-[var(--muted)]">{p.snippet}</p>
@@ -357,22 +445,22 @@ export function TeamThread({
                       onClick={() => reveal(b)}
                       className="rounded-xl bg-[#12a150] px-4 py-2.5 text-sm font-medium text-white"
                     >
-                      Unlock full results · {b.estimateCredits} credits
+                      {t.unlock(b.estimateCredits)}
                     </button>
                   ) : (
                     <button
                       onClick={onAddCredits}
                       className="rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white"
                     >
-                      Add cUSD to unlock · need {b.estimateCredits}
+                      {t.addUnlock(b.estimateCredits)}
                     </button>
                   )}
                 </div>
               ) : b.state === "revealing" ? (
-                <p className="mt-2 text-center text-xs text-[var(--muted)]">Unlocking…</p>
+                <p className="mt-2 text-center text-xs text-[var(--muted)]">{t.unlocking}</p>
               ) : b.state === "revealed" ? (
                 <div className="mt-2 flex flex-col gap-2">
-                  <p className="text-center text-xs font-medium text-[#4ade80]">✓ Done</p>
+                  <p className="text-center text-xs font-medium text-[#4ade80]">✓ {t.done}</p>
                   <ul className="flex flex-col gap-1.5">
                     {(b.results ?? []).map((r) => (
                       <li key={r.taskId} className="rounded-xl bg-white/5 p-2 text-sm">
@@ -391,7 +479,7 @@ export function TeamThread({
                       onClick={onAddCredits}
                       className="flex-1 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white"
                     >
-                      Add cUSD to run it
+                      {t.addRun}
                     </button>
                   ) : (
                     <>
@@ -400,7 +488,7 @@ export function TeamThread({
                         disabled={b.state === "approving"}
                         className="rounded-xl border border-white/15 px-4 py-2.5 text-sm font-medium disabled:opacity-60"
                       >
-                        No thanks
+                        {t.decline}
                       </button>
                       <button
                         onClick={() => approve(b)}
@@ -408,10 +496,10 @@ export function TeamThread({
                         className="flex-1 rounded-xl bg-[#12a150] px-4 py-2.5 text-sm font-medium text-white disabled:opacity-60"
                       >
                         {b.state === "approving"
-                          ? "Starting…"
+                          ? t.starting
                           : b.freeEligible
-                            ? "Yes, do it (free)"
-                            : `Yes, do it · ${b.estimateCredits} credits`}
+                            ? t.approveFree
+                            : t.approve(b.estimateCredits)}
                       </button>
                     </>
                   )}
@@ -422,7 +510,7 @@ export function TeamThread({
         })}
         {showStarters && (
           <div className="mt-1 flex flex-wrap gap-2 self-start">
-            {STARTERS.map((s) => (
+            {STARTERS[locale].map((s) => (
               <button
                 key={s}
                 onClick={() => handleSend(s)}
@@ -442,7 +530,7 @@ export function TeamThread({
           <button
             type="button"
             onClick={() => (voice.listening ? voice.stop() : voice.start())}
-            aria-label={voice.listening ? "Stop listening" : "Speak"}
+            aria-label={voice.listening ? t.stop : t.speak}
             className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-base ${
               voice.listening ? "bg-red-500 text-white" : "bg-white/10 text-[var(--foreground)]"
             }`}
@@ -460,7 +548,7 @@ export function TeamThread({
             }
           }}
           rows={1}
-          placeholder={voice.listening ? "Listening…" : "Type what you need…"}
+          placeholder={voice.listening ? t.listening : t.placeholder}
           className="max-h-28 min-h-[40px] flex-1 resize-none rounded-2xl bg-white/5 px-3.5 py-2.5 text-sm outline-none placeholder-[var(--muted)]"
         />
         <button
@@ -469,7 +557,7 @@ export function TeamThread({
           disabled={!text.trim() || busy}
           className="h-10 shrink-0 rounded-2xl bg-[var(--accent)] px-4 text-sm font-medium text-white disabled:opacity-50"
         >
-          Send
+          {t.send}
         </button>
       </div>
     </div>

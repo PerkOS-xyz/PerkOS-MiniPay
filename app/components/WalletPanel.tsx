@@ -6,6 +6,7 @@ import { celo } from "wagmi/chains";
 import { formatUnits } from "viem";
 import { CUSD, USDC, USDT, type TokenInfo } from "../lib/tokenAddresses";
 import { selectPaymentToken } from "../lib/selectPaymentToken";
+import { useLanguage } from "../lib/i18n";
 import { usePayCusd } from "../lib/usePayCusd";
 import {
   getBillingMe,
@@ -32,12 +33,24 @@ const ERC20_BALANCE_ABI = [
 const PAYMENT_ADDRESS = (process.env.NEXT_PUBLIC_PAYMENT_ADDRESS ?? "") as `0x${string}`;
 
 export function WalletPanel({ address, compact = false }: { address: string; compact?: boolean }) {
+  const { locale } = useLanguage();
+  const tr = (en: string, es: string) => locale === "es" ? es : en;
   const account = address as `0x${string}`;
   const { pay, ready } = usePayCusd();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [billing, setBilling] = useState<BillingMe | null>(null);
   const [packs, setPacks] = useState<CreditPacks | null>(null);
+  const [showMembership, setShowMembership] = useState(false);
+  const [paymentStage, setPaymentStage] = useState<
+    "idle" | "wallet" | "chain" | "done" | "pending" | "error"
+  >("idle");
+  const [txHash, setTxHash] = useState<`0x${string}` | null>(null);
+  const [pendingPayment, setPendingPayment] = useState<
+    | { kind: "pack"; hash: `0x${string}` }
+    | { kind: "membership"; hash: `0x${string}`; tier: "basic" | "pro" }
+    | null
+  >(null);
 
   const refreshBilling = useCallback(() => {
     getBillingMe().then(setBilling).catch(() => {});
@@ -73,6 +86,14 @@ export function WalletPanel({ address, compact = false }: { address: string; com
   const ready3 =
     cusdBal.value !== undefined || usdtBal.value !== undefined || usdcBal.value !== undefined;
   const walletUsd = (cusdBal.value ?? 0) + (usdtBal.value ?? 0) + (usdcBal.value ?? 0);
+  const canTopUp = ready && ready3 && Boolean(PAYMENT_ADDRESS);
+  const topUpHint = !PAYMENT_ADDRESS
+    ? tr("Top-ups are not configured yet.", "Las recargas todavía no están configuradas.")
+    : !ready3
+      ? tr("Checking your stablecoin balance…", "Consultando tu balance de stablecoins…")
+      : !ready
+        ? tr("Reconnect your wallet to buy credits.", "Reconecta tu wallet para comprar créditos.")
+        : null;
 
   // Pay with the stablecoin the user actually holds — highest balance that
   // covers the pack (MiniPay users hold USDT, so this avoids the cUSD-only trap).
@@ -86,36 +107,47 @@ export function WalletPanel({ address, compact = false }: { address: string; com
 
   async function buyPack(pack: { usd: number; credits: number }) {
     setMsg(null);
+    setTxHash(null);
+    setPendingPayment(null);
     if (!PAYMENT_ADDRESS) {
-      setMsg("Top-ups aren't configured yet.");
+      setMsg(tr("Top-ups aren't configured yet.", "Las recargas todavía no están configuradas."));
       return;
     }
     const token = payTokenFor(pack.usd);
     if (!token) {
-      setMsg(`You need at least $${pack.usd} in USDT, cUSD or USDC to buy this pack.`);
+      setMsg(tr(`You need at least $${pack.usd} in USDT, cUSD or USDC to buy this pack.`, `Necesitas al menos $${pack.usd} en USDT, cUSD o USDC para comprar este paquete.`));
       return;
     }
     setBusy(true);
     try {
-      setMsg(`Paying ${pack.usd} ${token.symbol}…`);
+      setPaymentStage("wallet");
+      setMsg(tr(`Paying ${pack.usd} ${token.symbol}…`, `Esperando el pago de ${pack.usd} ${token.symbol}…`));
       const hash = await pay(PAYMENT_ADDRESS, String(pack.usd), token);
-      setMsg("Confirming payment…");
+      setTxHash(hash);
+      setPaymentStage("chain");
+      setMsg(tr("Confirming payment on Celo…", "Confirmando el pago en Celo…"));
       // The verifier reads the tx on-chain; retry briefly if it's not mined yet.
       let credited = false;
       for (let i = 0; i < 4 && !credited; i++) {
         try {
           const r = await depositCelo(hash);
-          setMsg(`Added ${r.added} credits`);
+          setMsg(tr(`Added ${r.added} credits`, `Se agregaron ${r.added} créditos`));
+          setPaymentStage("done");
           credited = true;
         } catch {
           await new Promise((res) => setTimeout(res, 3000));
         }
       }
-      if (!credited) setMsg("Payment sent — credits will appear shortly.");
+      if (!credited) {
+        setPendingPayment({ kind: "pack", hash });
+        setPaymentStage("pending");
+        setMsg(tr("Payment sent, but confirmation is taking longer than expected.", "El pago fue enviado, pero la confirmación está tardando más de lo esperado."));
+      }
       refreshBilling();
       setTimeout(() => refetch(), 4000);
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Payment failed");
+      setPaymentStage("error");
+      setMsg(e instanceof Error ? e.message : tr("Payment failed", "El pago falló"));
     } finally {
       setBusy(false);
     }
@@ -123,35 +155,72 @@ export function WalletPanel({ address, compact = false }: { address: string; com
 
   async function buyTier(key: "basic" | "pro", usd: number) {
     setMsg(null);
+    setTxHash(null);
+    setPendingPayment(null);
     if (!PAYMENT_ADDRESS) {
-      setMsg("Membership isn't configured yet.");
+      setMsg(tr("Membership isn't configured yet.", "La membresía todavía no está configurada."));
       return;
     }
     const token = payTokenFor(usd);
     if (!token) {
-      setMsg(`You need at least $${usd} in USDT, cUSD or USDC to go ${key}.`);
+      setMsg(tr(`You need at least $${usd} in USDT, cUSD or USDC to go ${key}.`, `Necesitas al menos $${usd} en USDT, cUSD o USDC para cambiar al plan ${key}.`));
       return;
     }
     setBusy(true);
     try {
-      setMsg(`Paying ${usd} ${token.symbol}…`);
+      setPaymentStage("wallet");
+      setMsg(tr(`Paying ${usd} ${token.symbol}…`, `Esperando el pago de ${usd} ${token.symbol}…`));
       const hash = await pay(PAYMENT_ADDRESS, String(usd), token);
-      setMsg("Activating membership…");
+      setTxHash(hash);
+      setPaymentStage("chain");
+      setMsg(tr("Activating membership…", "Activando la membresía…"));
       let done = false;
       for (let i = 0; i < 4 && !done; i++) {
         const r = await buyMembership(key, hash);
         if (r.ok) {
-          setMsg(`You're on ${key[0].toUpperCase() + key.slice(1)} — +${r.credits} credits`);
+          setMsg(tr(`You're on ${key[0].toUpperCase() + key.slice(1)} · +${r.credits} credits`, `Plan ${key} activo · +${r.credits} créditos`));
+          setPaymentStage("done");
           done = true;
         } else {
           await new Promise((res) => setTimeout(res, 3000));
         }
       }
-      if (!done) setMsg("Payment sent — membership will activate shortly.");
+      if (!done) {
+        setPendingPayment({ kind: "membership", hash, tier: key });
+        setPaymentStage("pending");
+        setMsg(tr("Payment sent, but membership confirmation is taking longer than expected.", "El pago fue enviado, pero la membresía está tardando en confirmarse."));
+      }
       refreshBilling();
       setTimeout(() => refetch(), 4000);
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Membership payment failed");
+      setPaymentStage("error");
+      setMsg(e instanceof Error ? e.message : tr("Membership payment failed", "El pago de la membresía falló"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function retryVerification() {
+    if (!pendingPayment || busy) return;
+    setBusy(true);
+    setPaymentStage("chain");
+    setMsg(tr("Checking the transaction again…", "Consultando la transacción nuevamente…"));
+    try {
+      if (pendingPayment.kind === "pack") {
+        const r = await depositCelo(pendingPayment.hash);
+        setMsg(tr(`Added ${r.added} credits`, `Se agregaron ${r.added} créditos`));
+      } else {
+        const r = await buyMembership(pendingPayment.tier, pendingPayment.hash);
+        if (!r.ok) throw new Error(r.message || tr("Membership is not confirmed yet.", "La membresía todavía no está confirmada."));
+        setMsg(tr(`Membership active · +${r.credits} credits`, `Membresía activa · +${r.credits} créditos`));
+      }
+      setPaymentStage("done");
+      setPendingPayment(null);
+      refreshBilling();
+      refetch();
+    } catch (e) {
+      setPaymentStage("pending");
+      setMsg(e instanceof Error ? e.message : tr("Still waiting for confirmation.", "Todavía estamos esperando la confirmación."));
     } finally {
       setBusy(false);
     }
@@ -178,27 +247,27 @@ export function WalletPanel({ address, compact = false }: { address: string; com
           {/* Compact = the dashboard's Overview already owns the credits/free
               numbers, so we don't repeat them here — just a buy affordance. */}
           {compact ? (
-            <p className="text-sm font-medium">Buy credits</p>
+            <p className="text-sm font-medium">{tr("Buy credits", "Comprar créditos")}</p>
           ) : (
             <>
-              <p className="text-xs text-[var(--muted)]">Your credits</p>
+              <p className="text-xs text-[var(--muted)]">{tr("Your credits", "Tus créditos")}</p>
               <p className="text-2xl font-semibold">
-                {billing ? billing.credits : "—"} <span className="text-sm font-normal">credits</span>
+                  {billing ? billing.credits : "—"} <span className="text-sm font-normal">{tr("credits", "créditos")}</span>
               </p>
               {billing && (
                 <p className="mt-0.5 text-xs text-[var(--muted)]">
                   {billing.exempt
-                    ? "Sponsored, runs are free for you"
+                    ? tr("Sponsored, runs are free for you", "Patrocinado, los trabajos son gratis para ti")
                     : billing.membershipActive
-                      ? "Member, included credits monthly"
-                      : `${billing.freeWorkflowsLeft}/${billing.freeWorkflowsPerMonth} free workflows left this month`}
+                      ? tr("Member, monthly credits included", "Miembro, incluye créditos mensuales")
+                      : tr(`${billing.freeWorkflowsLeft}/${billing.freeWorkflowsPerMonth} free workflows left this month`, `${billing.freeWorkflowsLeft}/${billing.freeWorkflowsPerMonth} trabajos gratis disponibles este mes`)}
                 </p>
               )}
             </>
           )}
         </div>
         <div className="text-right">
-          <p className="text-xs text-[var(--muted)]">In wallet</p>
+          <p className="text-xs text-[var(--muted)]">{tr("In wallet", "En la wallet")}</p>
           <p className="text-sm font-medium">{ready3 ? `$${walletUsd.toFixed(2)}` : "—"}</p>
           {ready3 && (usdtBal.value ?? 0) > 0 && (
             <p className="text-[10px] text-[var(--muted)]">{(usdtBal.value ?? 0).toFixed(2)} USDT</p>
@@ -211,7 +280,7 @@ export function WalletPanel({ address, compact = false }: { address: string; com
           <button
             key={p.usd}
             onClick={() => buyPack(p)}
-            disabled={busy || !ready}
+            disabled={busy || !canTopUp}
             className="flex-1 rounded-xl bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
             +{p.credits}
@@ -219,22 +288,38 @@ export function WalletPanel({ address, compact = false }: { address: string; com
           </button>
         ))}
       </div>
-      <p className="mt-2 text-xs text-[var(--muted)]">Credits pay for the work · pay with USDT, cUSD or USDC</p>
+      {topUpHint && <p className="mt-2 text-xs text-amber-200/80">{topUpHint}</p>}
+      <p className="mt-2 text-xs text-[var(--muted)]">{tr("Credits pay for the work · pay with USDT, cUSD or USDC", "Los créditos pagan el trabajo · usa USDT, cUSD o USDC")}</p>
 
-      {tierOffers.length > 0 && (
+      {tierOffers.length > 0 && !showMembership && (
+        <button
+          type="button"
+          onClick={() => setShowMembership(true)}
+          className="mt-3 w-full border-t border-white/10 pt-3 text-left text-xs font-medium text-[var(--accent)]"
+        >
+          {tr("Use PerkOS often? See optional monthly plans ›", "¿Usas PerkOS con frecuencia? Ver planes mensuales opcionales ›")}
+        </button>
+      )}
+
+      {tierOffers.length > 0 && showMembership && (
         <div className="mt-3 border-t border-white/10 pt-3">
-          <p className="text-sm font-medium">
-            {currentTier === "basic" ? "Go Pro" : "Membership"}
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">
+              {currentTier === "basic" ? tr("Go Pro", "Cambiar a Pro") : tr("Optional monthly plans", "Planes mensuales opcionales")}
+            </p>
+            <button type="button" onClick={() => setShowMembership(false)} className="text-xs text-[var(--muted)]">
+              {tr("Hide", "Ocultar")}
+            </button>
+          </div>
           <p className="text-[11px] text-[var(--muted)]">
-            More credits every month + a higher analysis limit.
+            {tr("More credits every month and a higher analysis limit.", "Más créditos cada mes y un límite de análisis mayor.")}
           </p>
           <div className="mt-2 flex flex-col gap-2">
             {tierOffers.map(([key, t]) => (
               <button
                 key={key}
                 onClick={() => buyTier(key, t.usd)}
-                disabled={busy || !ready}
+                disabled={busy || !canTopUp}
                 className="flex items-center justify-between rounded-xl border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-2.5 text-left disabled:opacity-50"
               >
                 <span>
@@ -255,7 +340,37 @@ export function WalletPanel({ address, compact = false }: { address: string; com
           {currentTier === "pro" ? "Pro member" : "Member"} · renews monthly
         </p>
       )}
-      {msg && <p className="mt-1 text-xs text-[var(--muted)]">{msg}</p>}
+      {msg && (
+        <div
+          role="status"
+          className={`mt-3 rounded-xl border px-3 py-2 text-xs ${
+            paymentStage === "done"
+              ? "border-[#4ade80]/30 bg-[#4ade80]/10 text-[#4ade80]"
+              : paymentStage === "error"
+                ? "border-red-400/30 bg-red-400/10 text-red-200"
+                : "border-white/10 bg-black/20 text-[var(--muted)]"
+          }`}
+        >
+          <p>{msg}</p>
+          <div className="mt-1 flex gap-3">
+            {txHash && (
+              <a
+                href={`https://celoscan.io/tx/${txHash}`}
+                target="_blank"
+                rel="noreferrer"
+                className="underline underline-offset-2"
+              >
+                {tr("View transaction", "Ver transacción")}
+              </a>
+            )}
+            {paymentStage === "pending" && pendingPayment && (
+              <button type="button" onClick={retryVerification} disabled={busy} className="underline underline-offset-2">
+                {tr("Check again", "Consultar nuevamente")}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
