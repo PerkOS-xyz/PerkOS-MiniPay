@@ -32,6 +32,14 @@ describe("landing copy", () => {
       expect(MESSAGES[l].hero.enterApp.length).toBeGreaterThan(0);
     }
   });
+
+  it("presents Lina as the product in both languages", () => {
+    for (const l of LOCALES) {
+      const copy = JSON.stringify(MESSAGES[l]);
+      expect(copy).toContain("Lina");
+      expect(copy).not.toMatch(/AI team|equipo de IA/i);
+    }
+  });
 });
 
 describe("detectLocale", () => {

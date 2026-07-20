@@ -8,6 +8,7 @@ import { useVoiceInput } from "../lib/useVoiceInput";
 import { Brand } from "./Brand";
 import { LanguageSelect } from "./LanguageSelect";
 import { useLanguage } from "../lib/i18n";
+import { LinaAvatar } from "./LinaAvatar";
 
 // First-run entry: one question, three common money chores, and a speak-or-type
 // box. Replaces the cold ~20-card gallery. Each chore maps to a starter team
@@ -22,9 +23,9 @@ export function NeedToday({
 }) {
   const { locale } = useLanguage();
   const t = locale === "es"
-    ? {
-        title: "¿Qué necesitas resolver hoy?",
-        subtitle: "Elige una opción o cuéntamelo. Tus primeros trabajos del mes son gratis.",
+      ? {
+        title: "Hola, soy Lina",
+        subtitle: "¿Qué necesitas resolver hoy? Elige una opción o cuéntamelo con tus propias palabras.",
         placeholder: "Ejemplo: ¿Cuánto gané esta semana?",
         stop: "Dejar de escuchar",
         speak: "Hablar",
@@ -34,9 +35,9 @@ export function NeedToday({
         starting: "Iniciando…",
         error: "No se pudo iniciar. Inténtalo nuevamente.",
       }
-    : {
-        title: "What do you need done today?",
-        subtitle: "Pick one, or just tell me. Your first jobs each month are free.",
+      : {
+        title: "Hi, I'm Lina",
+        subtitle: "What do you need done today? Pick one, or tell me in your own words.",
         placeholder: "e.g. How much did I earn this week?",
         stop: "Stop listening",
         speak: "Speak",
@@ -81,9 +82,12 @@ export function NeedToday({
         <LanguageSelect compact />
       </header>
 
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">{t.title}</h1>
-        <p className="text-sm text-[var(--muted)]">{t.subtitle}</p>
+      <div className="flex items-center gap-4 rounded-3xl border border-white/10 bg-white/5 p-4">
+        <LinaAvatar size="lg" state="welcome" />
+        <div className="flex min-w-0 flex-col gap-1">
+          <h1 className="text-2xl font-semibold">{t.title}</h1>
+          <p className="text-sm leading-relaxed text-[var(--muted)]">{t.subtitle}</p>
+        </div>
       </div>
 
       {/* Speak or type — voice leads, it's more natural */}

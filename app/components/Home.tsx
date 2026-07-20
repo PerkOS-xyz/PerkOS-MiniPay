@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  agentStatus,
   getBillingMe,
   listActivity,
   listAgents,
@@ -17,19 +16,18 @@ import {
 } from "../lib/perkosApi";
 import { listTemplates } from "../lib/perkosApi";
 import { Dashboard } from "./Dashboard";
-import { glyphFor } from "../lib/templateMeta";
 import { useIsMiniPay } from "../lib/useIsMiniPay";
 import { useLandingNav } from "../lib/landingNav";
 import { useWalletSession } from "../lib/useWalletSession";
 import { WalletPanel } from "./WalletPanel";
 import { Brand } from "./Brand";
-import { AgentChat } from "./AgentChat";
 import { TemplateGallery } from "./TemplateGallery";
 import { NeedToday } from "./NeedToday";
 import { TeamThread } from "./TeamThread";
 import { ServerWallet } from "./ServerWallet";
 import { LanguageSelect } from "./LanguageSelect";
 import { useLanguage } from "../lib/i18n";
+import { LinaAvatar } from "./LinaAvatar";
 
 type Loaded = {
   agents: Agent[];
@@ -45,19 +43,19 @@ export function Home({ address }: { address: string }) {
   const copy = locale === "es"
     ? {
         loading: "Cargando…",
-        teamWallet: "Wallet del equipo",
+        teamWallet: "Wallet del negocio",
         logout: "Cerrar sesión",
-        addHelper: "Agregar un asistente",
-        addHelperSub: "Más asistentes para dinero y clientes. Solo pagas por el trabajo.",
-        back: "‹ Volver a mi equipo",
+        addHelper: "Agregar una capacidad",
+        addHelperSub: "Dale a Lina más formas de ayudarte con dinero y clientes. Solo pagas por el trabajo.",
+        back: "‹ Volver con Lina",
       }
     : {
         loading: "Loading…",
-        teamWallet: "Team wallet",
+        teamWallet: "Business wallet",
         logout: "Log out",
-        addHelper: "Add a helper",
-        addHelperSub: "More money and customer helpers for your business. You only pay for the work.",
-        back: "‹ Back to my team",
+        addHelper: "Add a skill",
+        addHelperSub: "Give Lina more ways to help with money and customers. You only pay for the work.",
+        back: "‹ Back to Lina",
       };
   // Logout is browser-only: inside MiniPay the wallet is the host identity
   // and connection is implicit (rule C1) — no logout affordance there.
@@ -69,7 +67,6 @@ export function Home({ address }: { address: string }) {
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<"list" | "gallery" | "wallet">("list");
   const [openProjectId, setOpenProjectId] = useState<string | null>(null);
-  const [chatAgent, setChatAgent] = useState<string | null>(null);
   // Carried in from the first-run "what do you need?" box so the team thread
   // opens with the merchant's own words already sent.
   const [initialGoal, setInitialGoal] = useState<string | null>(null);
@@ -91,7 +88,7 @@ export function Home({ address }: { address: string }) {
       const tasksByProject = new Map(projects.map((p, i) => [p.id, taskLists[i] ?? []]));
       setData({ agents, projects, templates, billing, activity, tasksByProject });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't load your team");
+      setError(e instanceof Error ? e.message : "Couldn't load Lina");
     }
   }, [address]);
 
@@ -111,30 +108,9 @@ export function Home({ address }: { address: string }) {
 
   const templateFor = (p: Project): Template | undefined =>
     data.templates.find((t) => t.id === (p as Project & { templateId?: string }).templateId);
-  const roleLabel = (p: Project | undefined, agentName: string): { label: string; glyph: string } => {
-    const tpl = p ? templateFor(p) : undefined;
-    const role = tpl?.roles.find((r) => r.agentName === agentName);
-    return { label: role?.label ?? agentName, glyph: tpl ? glyphFor(tpl.id) : "✦" };
-  };
-
   const openProject = openProjectId
     ? data.projects.find((p) => p.id === openProjectId) ?? null
     : null;
-
-  // --- Talk to one helper alone (optional 1:1) ------------------------------
-  if (chatAgent && openProject) {
-    const { label, glyph } = roleLabel(openProject, chatAgent);
-    return (
-      <AgentChat
-        address={address}
-        projectId={openProject.id}
-        agentName={chatAgent}
-        label={label}
-        glyph={glyph}
-        onBack={() => setChatAgent(null)}
-      />
-    );
-  }
 
   const header = (
     <header className="flex items-center justify-between">
@@ -166,15 +142,12 @@ export function Home({ address }: { address: string }) {
     return (
       <ProjectView
         project={openProject}
-        agents={data.agents}
         template={templateFor(openProject)}
-        roleLabel={roleLabel}
         initialGoal={initialGoal}
         onBack={() => {
           setOpenProjectId(null);
           setInitialGoal(null);
         }}
-        onOpenChat={setChatAgent}
         onAddCredits={() => {
           setOpenProjectId(null);
           setInitialGoal(null);
@@ -271,33 +244,28 @@ export function Home({ address }: { address: string }) {
 
 function ProjectView({
   project,
-  agents,
   template,
-  roleLabel,
   initialGoal,
   onBack,
-  onOpenChat,
   onAddCredits,
 }: {
   project: Project;
-  agents: Agent[];
   template: Template | undefined;
-  roleLabel: (p: Project | undefined, name: string) => { label: string; glyph: string };
   initialGoal?: string | null;
   onBack: () => void;
-  onOpenChat: (agentName: string) => void;
   onAddCredits: () => void;
 }) {
   const { locale } = useLanguage();
   const teamLabel = locale === "es"
-    ? "Tu equipo · toca un asistente para hablar a solas"
-    : "Your team · tap a helper to talk to them alone";
+    ? "Lina está lista para ayudarte"
+    : "Lina is ready to help";
   return (
     <main className="flex h-[100dvh] flex-col px-5 pb-3 pt-4">
       <header className="flex items-center gap-3">
         <button onClick={onBack} aria-label="Back" className="-ml-1 px-1 text-2xl leading-none">
           ‹
         </button>
+        <LinaAvatar size="sm" state="resting" />
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-lg font-semibold">{template?.name ?? project.name}</h1>
           <p className="truncate text-xs text-[var(--muted)]">
@@ -306,37 +274,6 @@ function ProjectView({
         </div>
         <LanguageSelect compact />
       </header>
-
-      {/* The fleet is your team. Tapping a helper opens a 1:1 (optional); the
-          main way to get things done is the one thread below. */}
-      {(project.agentIds ?? []).length > 0 && (
-        <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-          {(project.agentIds ?? []).map((name) => {
-            const agent = agents.find((a) => a.name === name);
-            const { label, glyph } = roleLabel(project, name);
-            const status = agent ? agentStatus(agent) : "provisioning";
-            const dot =
-              status === "online" ? "#4ade80" : status === "provisioning" ? "#fbbf24" : "#9ca3af";
-            return (
-              <button
-                key={name}
-                onClick={() => onOpenChat(name)}
-                className="flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5"
-              >
-                <span
-                  className="grid h-6 w-6 place-items-center rounded-full text-xs"
-                  style={{ background: "linear-gradient(135deg,#8b5cf6,#ec4899)", color: "#fff" }}
-                  aria-hidden
-                >
-                  {glyph}
-                </span>
-                <span className="text-xs">{label}</span>
-                <span className="h-2 w-2 rounded-full" style={{ background: dot }} />
-              </button>
-            );
-          })}
-        </div>
-      )}
 
       <div className="mt-2 flex min-h-0 flex-1 flex-col">
         <TeamThread projectId={project.id} initialGoal={initialGoal} onAddCredits={onAddCredits} />

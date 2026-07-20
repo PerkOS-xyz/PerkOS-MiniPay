@@ -63,7 +63,7 @@ export function AgentChat({
           <p className="text-xs text-[var(--muted)]">
             {connecting
               ? locale === "es" ? "Conectando…" : "Connecting…"
-              : locale === "es" ? "Tu asistente" : "Your helper"}
+              : locale === "es" ? "Especialista de Lina" : "Lina's specialist"}
           </p>
         </div>
         <LanguageSelect compact />

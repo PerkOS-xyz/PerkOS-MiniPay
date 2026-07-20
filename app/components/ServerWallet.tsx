@@ -53,7 +53,7 @@ export function ServerWallet({ address }: { address: string }) {
             ? e.message
             : locale === "es"
               ? "No se pudo configurar la wallet del equipo."
-              : "Couldn't set up your team wallet.",
+              : "Couldn't set up your business wallet.",
         );
       });
   }, [locale]);
@@ -140,11 +140,11 @@ export function ServerWallet({ address }: { address: string }) {
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">{tr("Team wallet", "Wallet del equipo")}</h1>
+        <h1 className="text-2xl font-semibold">{tr("Business wallet", "Wallet del negocio")}</h1>
         <p className="text-sm text-[var(--muted)]">
           {tr(
-            "A separate wallet for future team payments on Celo. Deposits are ready; automatic team spending is not enabled yet. Your personal wallet stays private and its key is never shared.",
-            "Una wallet separada para futuros pagos del equipo en Celo. Los depósitos están disponibles; el gasto automático todavía no está habilitado. Tu wallet personal permanece privada y su llave nunca se comparte.",
+            "A separate wallet for future business payments on Celo. Deposits are ready; automatic spending is not enabled. Your personal wallet stays private and its key is never shared.",
+            "Una wallet separada para futuros pagos del negocio en Celo. Los depósitos están disponibles; el gasto automático no está habilitado. Tu wallet personal permanece privada y su llave nunca se comparte.",
           )}
         </p>
       </div>
@@ -152,7 +152,7 @@ export function ServerWallet({ address }: { address: string }) {
       {state === "error" ? (
         <div className="rounded-2xl border border-red-300/20 bg-red-400/5 p-4">
           <p className="text-sm font-medium text-red-200">
-            {tr("We couldn't load the team wallet.", "No pudimos cargar la wallet del equipo.")}
+            {tr("We couldn't load the business wallet.", "No pudimos cargar la wallet del negocio.")}
           </p>
           {msg && <p className="mt-1 text-xs text-foreground/60">{msg}</p>}
           <button

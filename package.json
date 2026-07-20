@@ -2,7 +2,7 @@
   "name": "perkos-minipay",
   "version": "0.1.0",
   "private": true,
-  "description": "PerkOS-MiniPay — your AI team, in your pocket. A coworking of agents for your small business, on Celo via Opera MiniPay.",
+  "description": "Lina by PerkOS — a practical business companion for MiniPay.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
