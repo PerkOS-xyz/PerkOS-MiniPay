@@ -5,11 +5,10 @@ import { useEffect, useRef, useState } from "react";
 import { Brand } from "../Brand";
 import {
   MESSAGES,
-  LOCALES,
-  LOCALE_LABELS,
-  detectLocale,
   type Locale,
 } from "../../lib/landingMessages";
+import { useLanguage } from "../../lib/i18n";
+import { LanguageSelect } from "../LanguageSelect";
 
 /**
  * PerkOS-MiniPay browser marketing landing (shown only in a regular browser,
@@ -31,23 +30,10 @@ export function MiniPayLanding({
   onEnterApp?: () => void;
   busy?: boolean;
 }) {
-  const [locale, setLocale] = useState<Locale>("en");
+  const { locale } = useLanguage();
   const [showMore, setShowMore] = useState(false);
   const [showSticky, setShowSticky] = useState(false);
   const heroCtaRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    setLocale(detectLocale());
-  }, []);
-
-  function pickLocale(l: Locale) {
-    setLocale(l);
-    try {
-      window.localStorage.setItem("perkos_lang", l);
-    } catch {
-      /* ignore */
-    }
-  }
 
   // Sticky bottom CTA appears once the hero CTA scrolls out of view.
   useEffect(() => {
@@ -80,7 +66,7 @@ export function MiniPayLanding({
   );
 
   return (
-    <main className="flex flex-col pb-24">
+    <main className="flex flex-col pb-28">
       {/* Header */}
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/10 bg-[var(--background)]/90 px-5 py-3 backdrop-blur">
         <button
@@ -90,22 +76,7 @@ export function MiniPayLanding({
         >
           <Brand />
         </button>
-        <div className="flex items-center gap-1 text-xs">
-          {LOCALES.map((l) => (
-            <button
-              key={l}
-              onClick={() => pickLocale(l)}
-              aria-pressed={locale === l}
-              className={
-                locale === l
-                  ? "rounded-full bg-white/10 px-2.5 py-1 font-medium"
-                  : "rounded-full px-2.5 py-1 text-[var(--muted)]"
-              }
-            >
-              {l.toUpperCase()}
-            </button>
-          ))}
-        </div>
+        <LanguageSelect compact />
       </header>
 
       {/* Hero */}
@@ -114,7 +85,7 @@ export function MiniPayLanding({
           {t.eyebrow}
         </span>
         <h1 className="max-w-[20ch] text-[27px] font-semibold leading-[1.15]">{t.hero.headline}</h1>
-        <p className="max-w-[34ch] text-sm text-[var(--muted)]">{t.hero.subhead}</p>
+        <p className="max-w-[34ch] text-sm leading-relaxed text-foreground/75">{t.hero.subhead}</p>
         <div ref={heroCtaRef} className="mt-3 flex w-full flex-col gap-2">
           <PrimaryCta label={t.hero.ctaPrimary} />
           <button
@@ -124,14 +95,18 @@ export function MiniPayLanding({
             {t.hero.ctaSecondary} ↓
           </button>
         </div>
-        <p className="mt-1 flex flex-wrap justify-center gap-x-2 gap-y-1 text-xs text-[var(--muted)]">
+        {!onEnterApp && (
+          <p className="max-w-[36ch] text-xs leading-relaxed text-foreground/65">
+            {t.hero.browserNote}
+          </p>
+        )}
+        <div className="mt-1 flex flex-wrap justify-center gap-1.5 text-xs text-foreground/70">
           {t.hero.trust.map((x, i) => (
-            <span key={i}>
-              {i > 0 && <span className="mr-2 opacity-50">·</span>}
-              {x}
+            <span key={i} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+              ✓ {x}
             </span>
           ))}
-        </p>
+        </div>
         <PreviewCard locale={locale} />
       </section>
 
@@ -161,7 +136,7 @@ export function MiniPayLanding({
               </span>
               <div className="flex flex-col gap-0.5">
                 <p className="text-sm font-medium">{s.title}</p>
-                <p className="text-sm text-[var(--muted)]">{s.desc}</p>
+                <p className="text-sm leading-relaxed text-foreground/70">{s.desc}</p>
               </div>
             </li>
           ))}
@@ -187,14 +162,14 @@ export function MiniPayLanding({
                 {tpl.emoji}
               </span>
               <p className="text-sm font-semibold">{tpl.title}</p>
-              <p className="text-sm leading-snug text-[var(--muted)]">{tpl.benefit}</p>
+              <p className="text-sm leading-relaxed text-foreground/70">{tpl.benefit}</p>
             </div>
           ))}
         </div>
         {!showMore && (
           <button
             onClick={() => setShowMore(true)}
-            className="self-center rounded-full border border-white/10 px-4 py-2 text-xs text-[var(--muted)] active:bg-white/5"
+            className="self-center rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-4 py-2 text-xs font-medium text-[var(--foreground)] active:bg-[var(--accent)]/20"
           >
             {t.templates.more}
           </button>
@@ -202,10 +177,18 @@ export function MiniPayLanding({
       </section>
 
       {/* Pricing */}
-      <section className="flex flex-col gap-3 bg-white/[0.02] px-5 py-9 text-center">
+      <section className="flex flex-col gap-4 bg-white/[0.02] px-5 py-9 text-center">
         <h2 className="text-lg font-semibold">{t.pricing.title}</h2>
-        <p className="mx-auto max-w-[38ch] text-sm text-[var(--muted)]">{t.pricing.body}</p>
-        <p className="mx-auto max-w-[38ch] text-xs text-[var(--muted)]/70">{t.pricing.smallprint}</p>
+        <p className="mx-auto max-w-[38ch] text-sm leading-relaxed text-foreground/70">{t.pricing.body}</p>
+        <div className="grid grid-cols-3 gap-2 text-left">
+          {t.pricing.highlights.map((item) => (
+            <div key={item.value} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+              <p className="text-base font-semibold text-[var(--foreground)]">{item.value}</p>
+              <p className="mt-1 text-[11px] leading-snug text-foreground/65">{item.label}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mx-auto max-w-[38ch] text-xs leading-relaxed text-foreground/60">{t.pricing.smallprint}</p>
       </section>
 
       {/* Trust */}
@@ -229,7 +212,7 @@ export function MiniPayLanding({
         <p className="text-sm text-[var(--muted)]">{t.social}</p>
         <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left">
           <p className="text-sm font-medium">{t.minipay.title}</p>
-          <p className="mt-1 text-sm text-[var(--muted)]">{t.minipay.body}</p>
+          <p className="mt-1 text-sm leading-relaxed text-foreground/70">{t.minipay.body}</p>
         </div>
       </section>
 
@@ -245,18 +228,12 @@ export function MiniPayLanding({
       {/* Footer */}
       <footer className="flex items-center justify-between border-t border-white/10 px-5 py-5 text-xs text-[var(--muted)]">
         <span>{t.footer.built}</span>
-        <span className="flex gap-2">
-          {LOCALES.map((l) => (
-            <button key={l} onClick={() => pickLocale(l)} className={locale === l ? "underline" : ""}>
-              {LOCALE_LABELS[l]}
-            </button>
-          ))}
-        </span>
+        <span>{t.footer.rights}</span>
       </footer>
 
       {/* Sticky mobile CTA */}
       {showSticky && (
-        <div className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[28rem] border-t border-white/10 bg-[var(--background)]/95 px-4 py-3 backdrop-blur">
+        <div className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[28rem] border-t border-white/10 bg-[var(--background)]/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
           <PrimaryCta label={t.hero.ctaPrimary} />
         </div>
       )}
@@ -278,7 +255,7 @@ function PreviewCard({ locale }: { locale: Locale }) {
             <span className="text-xs text-foreground/90">{l}</span>
             {i === 0 && (
               <span className="shrink-0 rounded-full bg-[var(--accent)]/15 px-2 py-0.5 text-[10px] text-[var(--accent)]">
-                1 credit
+                {locale === "es" ? "1 crédito" : "1 credit"}
               </span>
             )}
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useReadContract } from "wagmi";
 import { celo } from "wagmi/chains";
 import { formatUnits } from "viem";
@@ -9,6 +9,7 @@ import { CUSD, USDC, USDT, type TokenInfo } from "../lib/tokenAddresses";
 import { selectPaymentToken } from "../lib/selectPaymentToken";
 import { usePayCusd } from "../lib/usePayCusd";
 import { ensureServerWallet } from "../lib/perkosApi";
+import { useLanguage } from "../lib/i18n";
 
 const ERC20_BALANCE_ABI = [
   {
@@ -28,6 +29,8 @@ const ERC20_BALANCE_ABI = [
  * whereas the API's /wallet/balances tracks USDC + $PERKOS for the main app).
  */
 export function ServerWallet({ address }: { address: string }) {
+  const { locale } = useLanguage();
+  const tr = (en: string, es: string) => locale === "es" ? es : en;
   const { pay, ready } = usePayCusd();
   const [addr, setAddr] = useState<`0x${string}` | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
@@ -35,7 +38,9 @@ export function ServerWallet({ address }: { address: string }) {
   const [msg, setMsg] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
+  const loadWallet = useCallback(() => {
+    setState("loading");
+    setMsg(null);
     ensureServerWallet()
       .then((w) => {
         setAddr(w.address as `0x${string}`);
@@ -43,9 +48,19 @@ export function ServerWallet({ address }: { address: string }) {
       })
       .catch((e) => {
         setState("error");
-        setMsg(e instanceof Error ? e.message : "Couldn't set up your team wallet.");
+        setMsg(
+          e instanceof Error
+            ? e.message
+            : locale === "es"
+              ? "No se pudo configurar la wallet del equipo."
+              : "Couldn't set up your team wallet.",
+        );
       });
-  }, []);
+  }, [locale]);
+
+  useEffect(() => {
+    loadWallet();
+  }, [loadWallet]);
 
   function useBal(token: TokenInfo, owner: `0x${string}` | null) {
     const { data, refetch } = useReadContract({
@@ -104,17 +119,17 @@ export function ServerWallet({ address }: { address: string }) {
     setMsg(null);
     const token = payTokenFor(usd);
     if (!token) {
-      setMsg(`You need at least $${usd} in USDT, cUSD or USDC to deposit.`);
+      setMsg(tr(`You need at least $${usd} in USDT, cUSD or USDC to deposit.`, `Necesitas al menos $${usd} en USDT, cUSD o USDC para depositar.`));
       return;
     }
     setBusy(true);
     try {
-      setMsg(`Depositing $${usd} ${token.symbol}…`);
+      setMsg(tr(`Depositing $${usd} ${token.symbol}…`, `Depositando $${usd} ${token.symbol}…`));
       await pay(addr, String(usd), token);
-      setMsg("Deposit sent — it'll show here in a moment.");
+      setMsg(tr("Deposit sent. It will appear here shortly.", "Depósito enviado. Aparecerá aquí en unos momentos."));
       setTimeout(refetch, 5000);
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Deposit failed. Please try again.");
+      setMsg(e instanceof Error ? e.message : tr("Deposit failed. Please try again.", "El depósito falló. Inténtalo nuevamente."));
     } finally {
       setBusy(false);
     }
@@ -125,24 +140,37 @@ export function ServerWallet({ address }: { address: string }) {
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">Team wallet</h1>
+        <h1 className="text-2xl font-semibold">{tr("Team wallet", "Wallet del equipo")}</h1>
         <p className="text-sm text-[var(--muted)]">
-          The wallet your team uses to pay on your behalf, on Celo. Deposit cUSD here; your team
-          spends from it only when you approve. Your personal wallet stays private — its key is
-          never shared.
+          {tr(
+            "A separate wallet for future team payments on Celo. Deposits are ready; automatic team spending is not enabled yet. Your personal wallet stays private and its key is never shared.",
+            "Una wallet separada para futuros pagos del equipo en Celo. Los depósitos están disponibles; el gasto automático todavía no está habilitado. Tu wallet personal permanece privada y su llave nunca se comparte.",
+          )}
         </p>
       </div>
 
       {state === "error" ? (
-        <p className="text-sm text-red-300">{msg}</p>
+        <div className="rounded-2xl border border-red-300/20 bg-red-400/5 p-4">
+          <p className="text-sm font-medium text-red-200">
+            {tr("We couldn't load the team wallet.", "No pudimos cargar la wallet del equipo.")}
+          </p>
+          {msg && <p className="mt-1 text-xs text-foreground/60">{msg}</p>}
+          <button
+            type="button"
+            onClick={loadWallet}
+            className="mt-3 rounded-xl border border-white/15 px-3 py-2 text-sm font-medium"
+          >
+            {tr("Try again", "Reintentar")}
+          </button>
+        </div>
       ) : (
         <>
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs text-[var(--muted)]">Balance on Celo</p>
+            <p className="text-xs text-[var(--muted)]">{tr("Balance on Celo", "Balance en Celo")}</p>
             <p className="text-3xl font-semibold">{ready3 ? `$${spendable.toFixed(2)}` : "—"}</p>
             <div className="mt-3 flex items-center gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2">
               <span className="min-w-0 flex-1 truncate font-mono text-xs">
-                {state === "loading" ? "Setting up your wallet…" : short}
+                {state === "loading" ? tr("Setting up your wallet…", "Configurando tu wallet…") : short}
               </span>
               <button
                 type="button"
@@ -150,16 +178,16 @@ export function ServerWallet({ address }: { address: string }) {
                 disabled={!addr}
                 className="shrink-0 text-xs text-[var(--accent)] disabled:opacity-50"
               >
-                {copied ? "Copied" : "Copy"}
+                {copied ? tr("Copied", "Copiado") : tr("Copy", "Copiar")}
               </button>
             </div>
             <p className="mt-1 text-[11px] text-[var(--muted)]">
-              Deposit by sending cUSD to this address, or use the buttons below.
+              {tr("Deposit USDT, cUSD or USDC to this address, or use the buttons below.", "Deposita USDT, cUSD o USDC en esta dirección o usa los botones de abajo.")}
             </p>
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-medium">Deposit</p>
+            <p className="mb-2 text-sm font-medium">{tr("Deposit", "Depositar")}</p>
             <div className="flex flex-wrap gap-2">
               {[0.25, 1, 5].map((usd) => (
                 <button
@@ -174,7 +202,7 @@ export function ServerWallet({ address }: { address: string }) {
               ))}
             </div>
             <p className="mt-2 text-xs text-[var(--muted)]">
-              Sent from your wallet · pay with USDT, cUSD or USDC
+              {tr("Sent from your wallet · pay with USDT, cUSD or USDC", "Enviado desde tu wallet · paga con USDT, cUSD o USDC")}
             </p>
           </div>
 

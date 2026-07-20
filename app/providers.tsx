@@ -8,6 +8,7 @@ import { wagmiConfig } from "./lib/wagmi";
 import { AutoConnect } from "./components/AutoConnect";
 import { useMiniPayHost } from "./lib/useIsMiniPay";
 import { dynamicBrowserEnabled } from "./lib/dynamicBrowser";
+import { LanguageProvider } from "./lib/i18n";
 
 // Code-split: the @dynamic-labs SDK ships only to the browser host, never to
 // the MiniPay webview. ssr:false — Dynamic is browser-only and the plain tree
@@ -32,16 +33,20 @@ export function Providers({ children }: { children: ReactNode }) {
 
   if (dynamicBrowserEnabled(isMiniPayHost)) {
     return (
-      <DynamicProviders queryClient={queryClient}>{children}</DynamicProviders>
+      <LanguageProvider>
+        <DynamicProviders queryClient={queryClient}>{children}</DynamicProviders>
+      </LanguageProvider>
     );
   }
 
   return (
-    <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider client={queryClient}>
-        <AutoConnect />
-        {children}
-      </QueryClientProvider>
-    </WagmiProvider>
+    <LanguageProvider>
+      <WagmiProvider config={wagmiConfig}>
+        <QueryClientProvider client={queryClient}>
+          <AutoConnect />
+          {children}
+        </QueryClientProvider>
+      </WagmiProvider>
+    </LanguageProvider>
   );
 }

@@ -4,6 +4,7 @@ import { useMemo, useState, type FormEvent } from "react";
 
 import { useWalletSession } from "@/app/lib/useWalletSession";
 import { useMiniPayHost } from "@/app/lib/useIsMiniPay";
+import { useLanguage } from "@/app/lib/i18n";
 
 /**
  * Shown on the `not-allowlisted` gate (PERKOS_PUBLIC_MODE=false). One form,
@@ -14,6 +15,8 @@ import { useMiniPayHost } from "@/app/lib/useIsMiniPay";
  *     approves in PerkOS-Admin → /access.
  */
 export function AccessGate({ address }: { address: string }) {
+  const { locale } = useLanguage();
+  const tr = (en: string, es: string) => locale === "es" ? es : en;
   const session = useWalletSession();
   const isMiniPayHost = useMiniPayHost();
 
@@ -82,7 +85,7 @@ export function AccessGate({ address }: { address: string }) {
         });
         if (!res.ok) {
           const payload = (await res.json().catch(() => ({}))) as { error?: string };
-          throw new Error(payload.error || `Couldn't redeem the code (${res.status}).`);
+          throw new Error(payload.error || tr(`Couldn't redeem the code (${res.status}).`, `No se pudo canjear el código (${res.status}).`));
         }
         // Allowlisted now → full reload so the wallet session re-signs-in and
         // picks up the fresh grant, landing straight in the app.
@@ -103,11 +106,11 @@ export function AccessGate({ address }: { address: string }) {
       });
       if (!res.ok) {
         const payload = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(payload.error || `Couldn't send your request (${res.status}).`);
+        throw new Error(payload.error || tr(`Couldn't send your request (${res.status}).`, `No se pudo enviar la solicitud (${res.status}).`));
       }
       setSubmitted(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Try again.");
+      setError(err instanceof Error ? err.message : tr("Something went wrong. Try again.", "Algo salió mal. Inténtalo nuevamente."));
     } finally {
       setSubmitting(false);
     }
@@ -120,9 +123,9 @@ export function AccessGate({ address }: { address: string }) {
   if (submitted) {
     return (
       <div className="mt-4 w-full max-w-sm rounded-2xl border border-emerald-400/30 bg-emerald-400/10 p-5 text-center">
-        <p className="text-sm font-medium text-emerald-200">You&apos;re on the list</p>
+        <p className="text-sm font-medium text-emerald-200">{tr("You're on the list", "Estás en la lista")}</p>
         <p className="mt-1 text-xs text-[var(--muted)]">
-          We&apos;ll review your request and email you when your wallet is approved.
+          {tr("We'll review your request and email you when your wallet is approved.", "Revisaremos tu solicitud y te enviaremos un email cuando tu wallet sea aprobada.")}
         </p>
       </div>
     );
@@ -130,13 +133,13 @@ export function AccessGate({ address }: { address: string }) {
 
   return (
     <div className="mt-4 w-full max-w-sm rounded-2xl border border-white/10 bg-white/5 p-5 text-left">
-      <p className="text-sm font-medium text-[var(--foreground)]">Get access</p>
+      <p className="text-sm font-medium text-[var(--foreground)]">{tr("Get access", "Obtener acceso")}</p>
       <p className="mt-1 text-xs text-[var(--muted)]">
-        Have an access code? Redeem it to jump in. No code? Request access and we&apos;ll email you.
+        {tr("Have an access code? Redeem it to enter. No code? Request access and we'll email you.", "¿Tienes un código? Canjéalo para entrar. Si no, solicita acceso y te enviaremos un email.")}
       </p>
 
       <div className="mt-3 flex flex-col gap-1 rounded-xl border border-white/10 bg-black/25 px-3 py-2">
-        <span className={labelCls}>Your wallet</span>
+        <span className={labelCls}>{tr("Your wallet", "Tu wallet")}</span>
         <div className="flex items-start gap-2">
           <span className="min-w-0 flex-1 break-all font-mono text-[11px] text-[var(--foreground)]">
             {address}
@@ -146,7 +149,7 @@ export function AccessGate({ address }: { address: string }) {
             onClick={copyAddress}
             className="shrink-0 text-[11px] text-[var(--accent)]"
           >
-            {copied ? "Copied" : "Copy"}
+            {copied ? tr("Copied", "Copiado") : tr("Copy", "Copiar")}
           </button>
         </div>
       </div>
@@ -154,7 +157,7 @@ export function AccessGate({ address }: { address: string }) {
       <form onSubmit={onSubmit} noValidate className="mt-3 flex flex-col gap-3">
         <div className="flex flex-col gap-1">
           <label htmlFor="ag-code" className={labelCls}>
-            Access code (optional)
+            {tr("Access code (optional)", "Código de acceso (opcional)")}
           </label>
           <input
             id="ag-code"
@@ -180,13 +183,13 @@ export function AccessGate({ address }: { address: string }) {
             className={inputCls}
           />
           {attempted && !emailValid ? (
-            <p className="text-[11px] text-red-300">Enter a valid email.</p>
+            <p className="text-[11px] text-red-300">{tr("Enter a valid email.", "Ingresa un email válido.")}</p>
           ) : null}
         </div>
 
         <div className="flex flex-col gap-1">
           <label htmlFor="ag-username" className={labelCls}>
-            Username
+            {tr("Username", "Usuario")}
           </label>
           <input
             id="ag-username"
@@ -197,20 +200,20 @@ export function AccessGate({ address }: { address: string }) {
             className={inputCls}
           />
           {attempted && hasCode && !usernameValid ? (
-            <p className="text-[11px] text-red-300">3-20 chars: letters, numbers, _ or -.</p>
+            <p className="text-[11px] text-red-300">{tr("3-20 characters: letters, numbers, _ or -.", "3-20 caracteres: letras, números, _ o -.")}</p>
           ) : null}
         </div>
 
         {!hasCode ? (
           <div className="flex flex-col gap-1">
             <label htmlFor="ag-company" className={labelCls}>
-              Business
+              {tr("Business", "Negocio")}
             </label>
             <input
               id="ag-company"
               value={company}
               onChange={(e) => setCompany(e.target.value)}
-              placeholder="Your business name"
+              placeholder={tr("Your business name", "Nombre de tu negocio")}
               className={inputCls}
             />
           </div>
@@ -218,7 +221,7 @@ export function AccessGate({ address }: { address: string }) {
 
         <div className="flex flex-col gap-1">
           <label htmlFor="ag-website" className={labelCls}>
-            Website (optional)
+            {tr("Website (optional)", "Sitio web (opcional)")}
           </label>
           <input
             id="ag-website"
@@ -243,11 +246,11 @@ export function AccessGate({ address }: { address: string }) {
         >
           {submitting
             ? hasCode
-              ? "Granting…"
-              : "Sending…"
+              ? tr("Granting…", "Concediendo…")
+              : tr("Sending…", "Enviando…")
             : hasCode
-              ? "Redeem & enter"
-              : "Request access"}
+              ? tr("Redeem and enter", "Canjear y entrar")
+              : tr("Request access", "Solicitar acceso")}
         </button>
       </form>
 
@@ -260,7 +263,7 @@ export function AccessGate({ address }: { address: string }) {
           onClick={useDifferentWallet}
           className="mt-3 w-full text-center text-[11px] text-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-60"
         >
-          {loggingOut ? "Switching…" : "Use a different wallet"}
+          {loggingOut ? tr("Switching…", "Cambiando…") : tr("Use a different wallet", "Usar otra wallet")}
         </button>
       ) : null}
     </div>

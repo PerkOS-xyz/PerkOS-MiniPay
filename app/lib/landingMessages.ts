@@ -21,6 +21,7 @@ export type LandingCopy = {
     ctaPrimary: string;
     ctaSecondary: string;
     enterApp: string;
+    browserNote: string;
     trust: string[];
   };
   problem: { title: string; items: string[] };
@@ -35,7 +36,12 @@ export type LandingCopy = {
     more: string;
     items: { emoji: string; title: string; benefit: string }[];
   };
-  pricing: { title: string; body: string; smallprint: string };
+  pricing: {
+    title: string;
+    body: string;
+    highlights: { value: string; label: string }[];
+    smallprint: string;
+  };
   trust: { title: string; items: string[] };
   social: string;
   finalCta: { title: string; sub: string; cta: string };
@@ -52,6 +58,7 @@ const en: LandingCopy = {
     ctaPrimary: "Get started free",
     ctaSecondary: "See what it can do",
     enterApp: "Open the app",
+    browserNote: "On the web, continue with email or a wallet. In MiniPay, your wallet connects automatically.",
     trust: ["Free to start", "No seed phrase", "Money stays in your wallet"],
   },
   problem: {
@@ -76,7 +83,7 @@ const en: LandingCopy = {
   templates: {
     title: "What it does for you",
     subtitle: "Ready-made helpers you can turn on in one tap.",
-    more: "See more",
+    more: "See 2 more",
     items: [
       { emoji: "🧾", title: "Merchant Daily", benefit: "Log every sale in seconds and get your profit added up at the end of each week." },
       { emoji: "🛒", title: "Market Trader", benefit: "Record sales fast and always remember who is buying on credit." },
@@ -88,7 +95,12 @@ const en: LandingCopy = {
   },
   pricing: {
     title: "Start free. Pay only for the work.",
-    body: "Every month you get 3 workflows free. After that, top up with credits and only pay for jobs you approve. A quick task is 1 credit, about $0.02. Credit packs start at $0.25 for 10 credits. No subscription needed.",
+    body: "Approve each job after seeing its price. Monthly plans are optional.",
+    highlights: [
+      { value: "3", label: "free jobs every month" },
+      { value: "≈ $0.02", label: "for a quick job" },
+      { value: "$0.25", label: "for 10 credits" },
+    ],
     smallprint: "Simple jobs cost 1 credit, bigger ones 2 to 3. You always see the estimate before it runs.",
   },
   trust: {
@@ -124,6 +136,7 @@ const es: LandingCopy = {
     ctaPrimary: "Empieza gratis",
     ctaSecondary: "Mira lo que hace",
     enterApp: "Abrir la app",
+    browserNote: "En la web, continúa con email o wallet. Dentro de MiniPay, tu wallet se conecta automáticamente.",
     trust: ["Gratis para empezar", "Sin frase semilla", "Tu dinero se queda en tu wallet"],
   },
   problem: {
@@ -148,7 +161,7 @@ const es: LandingCopy = {
   templates: {
     title: "Lo que hace por ti",
     subtitle: "Asistentes listos que activas con un toque.",
-    more: "Ver más",
+    more: "Ver 2 más",
     items: [
       { emoji: "🧾", title: "Comercio Diario", benefit: "Registra cada venta en segundos y ve tu ganancia sumada al final de la semana." },
       { emoji: "🛒", title: "Vendedor de Mercado", benefit: "Anota ventas rápido y recuerda siempre quién compra fiado." },
@@ -160,7 +173,12 @@ const es: LandingCopy = {
   },
   pricing: {
     title: "Empieza gratis. Paga solo por el trabajo.",
-    body: "Cada mes tienes 3 flujos gratis. Después, recargas con créditos y pagas solo por los trabajos que apruebas. Una tarea rápida es 1 crédito, unos $0.02. Los paquetes de créditos empiezan en $0.25 por 10 créditos. Sin suscripción.",
+    body: "Aprueba cada trabajo después de ver su precio. Los planes mensuales son opcionales.",
+    highlights: [
+      { value: "3", label: "trabajos gratis cada mes" },
+      { value: "≈ $0.02", label: "por un trabajo rápido" },
+      { value: "$0.25", label: "por 10 créditos" },
+    ],
     smallprint: "Las tareas simples cuestan 1 crédito, las más grandes de 2 a 3. Siempre ves el estimado antes de que corra.",
   },
   trust: {
