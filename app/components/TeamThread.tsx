@@ -55,6 +55,7 @@ const uid = () => `b${(seq += 1)}`;
 const STARTERS = {
   en: ["How much did I earn this week?", "Who owes me money?", "Send a payment reminder"],
   es: ["¿Cuánto gané esta semana?", "¿Quién me debe dinero?", "Enviar un recordatorio de pago"],
+  pt: ["Quanto ganhei esta semana?", "Quem está me devendo?", "Enviar um lembrete de pagamento"],
 };
 
 export function TeamThread({
@@ -69,7 +70,7 @@ export function TeamThread({
   const { locale } = useLanguage();
   const t = locale === "es"
     ? {
-        greeting: "Hola, soy Lina. Dime qué necesitas y te mostraré el costo antes de hacer algo. Tus primeros trabajos de cada mes son gratis.",
+        greeting: "Hola, soy Anna. Dime qué necesitas y te mostraré el costo antes de hacer algo. Tus primeros trabajos de cada mes son gratis.",
         more: "Cuéntame un poco más y te ayudaré.",
         failed: "Lo siento, no pude hacerlo ahora. Inténtalo nuevamente.",
         workingJobs: "Ya empecé. Guardaré los resultados en tus trabajos cuando estén listos.",
@@ -85,7 +86,7 @@ export function TeamThread({
         freeLeft: (n: number) => `${n} gratis este mes`,
         balance: (n: number) => `Tienes ${n} créditos`,
         started: "Iniciado",
-        working: "Lina está trabajando…",
+        working: "Anna está trabajando…",
         preview: "Ya está listo. Aquí tienes un adelanto",
         locked: "Bloqueado",
         unlock: (n: number) => `Desbloquear resultados · ${n} créditos`,
@@ -104,8 +105,45 @@ export function TeamThread({
         send: "Enviar",
         workingLabel: "Trabajando",
       }
+    : locale === "pt"
+      ? {
+        greeting: "Olá, eu sou Anna. Diga o que precisa e mostrarei o custo antes de fazer qualquer coisa. Seus primeiros trabalhos de cada mês são grátis.",
+        more: "Conte um pouco mais e eu ajudarei.",
+        failed: "Desculpe, não consegui fazer isso agora. Tente novamente.",
+        workingJobs: "Já comecei. Vou guardar os resultados nos seus trabalhos quando estiverem prontos.",
+        insufficient: (need?: number, have?: number) => `Créditos insuficientes. Você precisa de ${need} e tem ${have}. Adicione fundos para continuar.`,
+        tooLarge: (max?: number) => `Este é um trabalho grande (máximo de ${max} por vez). Tente dividi-lo em pedidos menores.`,
+        startFailed: "Não foi possível iniciar. Tente novamente.",
+        unlockInsufficient: (need?: number, have?: number) => `Você precisa de ${need} créditos para desbloquear e tem ${have}. Adicione fundos ou melhore seu plano.`,
+        finishing: "Ainda estamos terminando. Só um momento.",
+        unlockFailed: "Não foi possível desbloquear agora. Tente novamente.",
+        plan: "Veja o que farei:",
+        cost: "Custo máximo",
+        free: "Grátis",
+        freeLeft: (n: number) => `${n} grátis neste mês`,
+        balance: (n: number) => `Você tem ${n} créditos`,
+        started: "Iniciado",
+        working: "Anna está trabalhando…",
+        preview: "Está pronto. Veja uma prévia",
+        locked: "Bloqueado",
+        unlock: (n: number) => `Desbloquear resultados completos · ${n} créditos`,
+        addUnlock: (n: number) => `Adicionar fundos para desbloquear · precisa de ${n}`,
+        unlocking: "Desbloqueando…",
+        done: "Concluído",
+        addRun: "Adicionar fundos para executar",
+        decline: "Agora não",
+        starting: "Iniciando…",
+        approveFree: "Sim, faça grátis",
+        approve: (n: number) => `Aprovar · ${n} créditos ($${creditsToUsd(n)})`,
+        stop: "Parar de ouvir",
+        speak: "Falar",
+        listening: "Ouvindo…",
+        placeholder: "Escreva o que precisa…",
+        send: "Enviar",
+        workingLabel: "Trabalhando",
+      }
     : {
-        greeting: "Hi, I'm Lina. Tell me what you need, and I'll show the cost before doing anything. Your first jobs each month are free.",
+        greeting: "Hi, I'm Anna. Tell me what you need, and I'll show the cost before doing anything. Your first jobs each month are free.",
         more: "Tell me a bit more and I'll help.",
         failed: "Sorry, I couldn't do that just now. Please try again.",
         workingJobs: "I'm on it. I'll keep the results in your jobs when they're ready.",
@@ -121,7 +159,7 @@ export function TeamThread({
         freeLeft: (n: number) => `${n} free this month`,
         balance: (n: number) => `You have ${n} credits`,
         started: "Started",
-        working: "Lina is working…",
+        working: "Anna is working…",
         preview: "It's ready. Here's a preview",
         locked: "Locked",
         unlock: (n: number) => `Unlock full results · ${n} credits`,

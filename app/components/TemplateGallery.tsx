@@ -8,7 +8,7 @@ import {
   glyphFor,
   type CategoryKey,
 } from "../lib/templateMeta";
-import { useLanguage } from "../lib/i18n";
+import { translated, useLanguage } from "../lib/i18n";
 
 const CATEGORY_LABELS_ES: Record<CategoryKey, string> = {
   merchant: "Mi negocio",
@@ -16,6 +16,14 @@ const CATEGORY_LABELS_ES: Record<CategoryKey, string> = {
   remittances: "Familia y remesas",
   "savings-groups": "Ahorro y grupos",
   "informal-finance": "Renta y préstamos",
+};
+
+const CATEGORY_LABELS_PT: Record<CategoryKey, string> = {
+  merchant: "Meu negócio",
+  everyday: "Dinheiro do dia a dia",
+  remittances: "Família e remessas",
+  "savings-groups": "Poupança e grupos",
+  "informal-finance": "Aluguel e empréstimos",
 };
 
 /**
@@ -31,6 +39,7 @@ export function TemplateGallery({
   onActivated: (projectId: string) => void;
 }) {
   const { locale } = useLanguage();
+  const tr = (en: string, es: string, pt: string) => translated(locale, en, es, pt);
   const [templates, setTemplates] = useState<Template[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -44,9 +53,7 @@ export function TemplateGallery({
         setError(
           e instanceof Error
             ? e.message
-            : locale === "es"
-              ? "No se pudieron cargar las herramientas"
-              : "Couldn't load tools",
+            : tr("Couldn't load tools", "No se pudieron cargar las herramientas", "Não foi possível carregar as ferramentas"),
         ),
       );
   }, [locale]);
@@ -62,8 +69,8 @@ export function TemplateGallery({
       const res = await activateTemplate(id);
       onActivated(res.activation.projectId);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : locale === "es" ? "No se pudo configurar" : "Couldn't set that up";
-      setError(/FLEET/i.test(msg) ? (locale === "es" ? "Esta herramienta estará disponible pronto. Vuelve en unos minutos." : "This tool is coming online soon. Check back shortly.") : msg);
+      const msg = e instanceof Error ? e.message : tr("Couldn't set that up", "No se pudo configurar", "Não foi possível configurar");
+      setError(/FLEET/i.test(msg) ? tr("This tool is coming online soon. Check back shortly.", "Esta herramienta estará disponible pronto. Vuelve en unos minutos.", "Esta ferramenta estará disponível em breve. Volte em alguns minutos.") : msg);
     } finally {
       setBusy(null);
     }
@@ -73,7 +80,7 @@ export function TemplateGallery({
     return (
       <div className="rounded-2xl border border-red-300/20 bg-red-400/5 p-4">
         <p className="text-sm text-red-200">
-          {locale === "es" ? "No pudimos cargar las herramientas." : "We couldn't load the tools."}
+          {tr("We couldn't load the tools.", "No pudimos cargar las herramientas.", "Não conseguimos carregar as ferramentas.")}
         </p>
         <p className="mt-1 text-xs text-foreground/60">{error}</p>
         <button
@@ -81,13 +88,13 @@ export function TemplateGallery({
           onClick={loadTemplates}
           className="mt-3 rounded-xl border border-white/15 px-3 py-2 text-sm font-medium"
         >
-          {locale === "es" ? "Reintentar" : "Try again"}
+          {tr("Try again", "Reintentar", "Tentar novamente")}
         </button>
       </div>
     );
   }
   if (!templates) {
-    return <p className="text-sm text-[var(--muted)]">{locale === "es" ? "Cargando herramientas…" : "Loading tools…"}</p>;
+    return <p className="text-sm text-[var(--muted)]">{tr("Loading tools…", "Cargando herramientas…", "Carregando ferramentas…")}</p>;
   }
 
   const byCat = new Map<CategoryKey, Template[]>();
@@ -102,7 +109,7 @@ export function TemplateGallery({
       {CATEGORY_ORDER.filter((c) => byCat.has(c)).map((cat) => (
         <section key={cat} className="flex flex-col gap-3">
           <h2 className="text-sm font-medium text-[var(--muted)]">
-            {locale === "es" ? CATEGORY_LABELS_ES[cat] : CATEGORY_LABELS[cat]}
+            {locale === "es" ? CATEGORY_LABELS_ES[cat] : locale === "pt" ? CATEGORY_LABELS_PT[cat] : CATEGORY_LABELS[cat]}
           </h2>
           {byCat.get(cat)!.map((t) => {
             const active = activeTemplateIds.has(t.id);
@@ -132,10 +139,10 @@ export function TemplateGallery({
                   }`}
                 >
                   {active
-                    ? locale === "es" ? "Agregado" : "Added"
+                    ? tr("Added", "Agregado", "Adicionado")
                     : busy === t.id
-                      ? locale === "es" ? "Agregando…" : "Adding…"
-                      : locale === "es" ? "Usar" : "Use"}
+                      ? tr("Adding…", "Agregando…", "Adicionando…")
+                      : tr("Use", "Usar", "Usar")}
                 </button>
               </div>
             );

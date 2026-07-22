@@ -13,11 +13,12 @@ function keyPaths(o: unknown, prefix = ""): string[] {
 }
 
 describe("landing copy", () => {
-  it("en and es have identical structure (no missing translations)", () => {
+  it("all locales have identical structure (no missing translations)", () => {
     expect(keyPaths(MESSAGES.en).sort()).toEqual(keyPaths(MESSAGES.es).sort());
+    expect(keyPaths(MESSAGES.en).sort()).toEqual(keyPaths(MESSAGES.pt).sort());
   });
 
-  it("both locales feature 6 templates", () => {
+  it("all locales feature 6 templates", () => {
     for (const l of LOCALES) expect(MESSAGES[l].templates.items).toHaveLength(6);
   });
 
@@ -33,10 +34,10 @@ describe("landing copy", () => {
     }
   });
 
-  it("presents Lina as the product in both languages", () => {
+  it("presents Anna as the product in every language", () => {
     for (const l of LOCALES) {
       const copy = JSON.stringify(MESSAGES[l]);
-      expect(copy).toContain("Lina");
+      expect(copy).toContain("Anna");
       expect(copy).not.toMatch(/AI team|equipo de IA/i);
     }
   });
@@ -55,6 +56,17 @@ describe("detectLocale", () => {
   it("?lang=es takes priority", () => {
     window.history.replaceState({}, "", "/?lang=es");
     expect(detectLocale()).toBe("es");
+  });
+
+  it("supports Portuguese from query, storage, and browser language", () => {
+    window.history.replaceState({}, "", "/?lang=pt");
+    expect(detectLocale()).toBe("pt");
+    window.history.replaceState({}, "", "/");
+    window.localStorage.setItem("perkos_lang", "pt");
+    expect(detectLocale()).toBe("pt");
+    window.localStorage.clear();
+    Object.defineProperty(navigator, "language", { value: "pt-BR", configurable: true });
+    expect(detectLocale()).toBe("pt");
   });
 
   it("falls back to a saved localStorage choice", () => {

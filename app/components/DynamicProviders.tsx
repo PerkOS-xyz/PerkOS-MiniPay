@@ -3,13 +3,18 @@
 import { type ReactNode } from "react";
 import { WagmiProvider } from "wagmi";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
-import { DynamicContextProvider } from "@dynamic-labs/sdk-react-core";
+import { DynamicContextProvider, mergeNetworks } from "@dynamic-labs/sdk-react-core";
 import { EthereumWalletConnectors } from "@dynamic-labs/ethereum";
 
 import { wagmiConfig } from "../lib/wagmi";
 import { DYNAMIC_ENV_ID } from "../lib/dynamicBrowser";
 import { AutoConnect } from "./AutoConnect";
 import { DynamicWalletBridge } from "./DynamicWalletBridge";
+import { BrowserChainProvider } from "./BrowserChainProvider";
+import { DYNAMIC_BROWSER_NETWORKS } from "../lib/browserChains";
+
+const mergeBrowserNetworks = (networks: Parameters<typeof mergeNetworks>[1]) =>
+  mergeNetworks(DYNAMIC_BROWSER_NETWORKS, networks);
 
 /**
  * Full provider stack WITH Dynamic, kept in its own module so providers.tsx
@@ -35,6 +40,9 @@ export default function DynamicProviders({
         // Same environment id as the main PerkOS App (shared Dynamic dashboard).
         environmentId: DYNAMIC_ENV_ID,
         walletConnectors: [EthereumWalletConnectors],
+        overrides: {
+          evmNetworks: mergeBrowserNetworks,
+        },
         // Connect the wallet only — PerkOS does its own nonce sign-in
         // (/api/auth/wallet-signin); Dynamic's built-in SIWE would make the
         // user sign twice.
@@ -49,7 +57,9 @@ export default function DynamicProviders({
               window.ethereum.isMiniPay) and useWalletSession's wagmi fallback
               takes over. Inert in real browsers. */}
           <AutoConnect />
-          <DynamicWalletBridge>{children}</DynamicWalletBridge>
+          <BrowserChainProvider>
+            <DynamicWalletBridge>{children}</DynamicWalletBridge>
+          </BrowserChainProvider>
         </QueryClientProvider>
       </WagmiProvider>
     </DynamicContextProvider>

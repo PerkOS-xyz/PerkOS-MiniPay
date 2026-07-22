@@ -6,7 +6,7 @@ import { celo } from "wagmi/chains";
 import { formatUnits } from "viem";
 import { CUSD, USDC, USDT, type TokenInfo } from "../lib/tokenAddresses";
 import { selectPaymentToken } from "../lib/selectPaymentToken";
-import { useLanguage } from "../lib/i18n";
+import { translated, useLanguage } from "../lib/i18n";
 import { usePayCusd } from "../lib/usePayCusd";
 import {
   getBillingMe,
@@ -34,7 +34,7 @@ const PAYMENT_ADDRESS = (process.env.NEXT_PUBLIC_PAYMENT_ADDRESS ?? "") as `0x${
 
 export function WalletPanel({ address, compact = false }: { address: string; compact?: boolean }) {
   const { locale } = useLanguage();
-  const tr = (en: string, es: string) => locale === "es" ? es : en;
+  const tr = (en: string, es: string, pt: string = en) => translated(locale, en, es, pt);
   const account = address as `0x${string}`;
   const { pay, ready } = usePayCusd();
   const [busy, setBusy] = useState(false);
@@ -88,11 +88,11 @@ export function WalletPanel({ address, compact = false }: { address: string; com
   const walletUsd = (cusdBal.value ?? 0) + (usdtBal.value ?? 0) + (usdcBal.value ?? 0);
   const canTopUp = ready && ready3 && Boolean(PAYMENT_ADDRESS);
   const topUpHint = !PAYMENT_ADDRESS
-    ? tr("Top-ups are not configured yet.", "Las recargas todavía no están configuradas.")
+    ? tr("Top-ups are not configured yet.", "Las recargas todavía no están configuradas.", "As recargas ainda não estão configuradas.")
     : !ready3
-      ? tr("Checking your stablecoin balance…", "Consultando tu balance de stablecoins…")
+      ? tr("Checking your stablecoin balance…", "Consultando tu balance de stablecoins…", "Consultando seu saldo de stablecoins…")
       : !ready
-        ? tr("Reconnect your wallet to buy credits.", "Reconecta tu wallet para comprar créditos.")
+        ? tr("Reconnect your wallet to buy credits.", "Reconecta tu wallet para comprar créditos.", "Reconecte sua carteira para comprar créditos.")
         : null;
 
   // Pay with the stablecoin the user actually holds — highest balance that
@@ -110,28 +110,28 @@ export function WalletPanel({ address, compact = false }: { address: string; com
     setTxHash(null);
     setPendingPayment(null);
     if (!PAYMENT_ADDRESS) {
-      setMsg(tr("Top-ups aren't configured yet.", "Las recargas todavía no están configuradas."));
+      setMsg(tr("Top-ups aren't configured yet.", "Las recargas todavía no están configuradas.", "As recargas ainda não estão configuradas."));
       return;
     }
     const token = payTokenFor(pack.usd);
     if (!token) {
-      setMsg(tr(`You need at least $${pack.usd} in USDT, cUSD or USDC to buy this pack.`, `Necesitas al menos $${pack.usd} en USDT, cUSD o USDC para comprar este paquete.`));
+      setMsg(tr(`You need at least $${pack.usd} in USDT, cUSD or USDC to buy this pack.`, `Necesitas al menos $${pack.usd} en USDT, cUSD o USDC para comprar este paquete.`, `Você precisa de pelo menos $${pack.usd} em USDT, cUSD ou USDC para comprar este pacote.`));
       return;
     }
     setBusy(true);
     try {
       setPaymentStage("wallet");
-      setMsg(tr(`Paying ${pack.usd} ${token.symbol}…`, `Esperando el pago de ${pack.usd} ${token.symbol}…`));
+      setMsg(tr(`Paying ${pack.usd} ${token.symbol}…`, `Esperando el pago de ${pack.usd} ${token.symbol}…`, `Aguardando o pagamento de ${pack.usd} ${token.symbol}…`));
       const hash = await pay(PAYMENT_ADDRESS, String(pack.usd), token);
       setTxHash(hash);
       setPaymentStage("chain");
-      setMsg(tr("Confirming payment on Celo…", "Confirmando el pago en Celo…"));
+      setMsg(tr("Confirming payment on Celo…", "Confirmando el pago en Celo…", "Confirmando o pagamento na Celo…"));
       // The verifier reads the tx on-chain; retry briefly if it's not mined yet.
       let credited = false;
       for (let i = 0; i < 4 && !credited; i++) {
         try {
           const r = await depositCelo(hash);
-          setMsg(tr(`Added ${r.added} credits`, `Se agregaron ${r.added} créditos`));
+          setMsg(tr(`Added ${r.added} credits`, `Se agregaron ${r.added} créditos`, `${r.added} créditos adicionados`));
           setPaymentStage("done");
           credited = true;
         } catch {
@@ -141,13 +141,13 @@ export function WalletPanel({ address, compact = false }: { address: string; com
       if (!credited) {
         setPendingPayment({ kind: "pack", hash });
         setPaymentStage("pending");
-        setMsg(tr("Payment sent, but confirmation is taking longer than expected.", "El pago fue enviado, pero la confirmación está tardando más de lo esperado."));
+        setMsg(tr("Payment sent, but confirmation is taking longer than expected.", "El pago fue enviado, pero la confirmación está tardando más de lo esperado.", "Pagamento enviado, mas a confirmação está demorando mais que o esperado."));
       }
       refreshBilling();
       setTimeout(() => refetch(), 4000);
     } catch (e) {
       setPaymentStage("error");
-      setMsg(e instanceof Error ? e.message : tr("Payment failed", "El pago falló"));
+      setMsg(e instanceof Error ? e.message : tr("Payment failed", "El pago falló", "O pagamento falhou"));
     } finally {
       setBusy(false);
     }
@@ -158,27 +158,27 @@ export function WalletPanel({ address, compact = false }: { address: string; com
     setTxHash(null);
     setPendingPayment(null);
     if (!PAYMENT_ADDRESS) {
-      setMsg(tr("Membership isn't configured yet.", "La membresía todavía no está configurada."));
+      setMsg(tr("Membership isn't configured yet.", "La membresía todavía no está configurada.", "A assinatura ainda não está configurada."));
       return;
     }
     const token = payTokenFor(usd);
     if (!token) {
-      setMsg(tr(`You need at least $${usd} in USDT, cUSD or USDC to go ${key}.`, `Necesitas al menos $${usd} en USDT, cUSD o USDC para cambiar al plan ${key}.`));
+      setMsg(tr(`You need at least $${usd} in USDT, cUSD or USDC to go ${key}.`, `Necesitas al menos $${usd} en USDT, cUSD o USDC para cambiar al plan ${key}.`, `Você precisa de pelo menos $${usd} em USDT, cUSD ou USDC para mudar para o plano ${key}.`));
       return;
     }
     setBusy(true);
     try {
       setPaymentStage("wallet");
-      setMsg(tr(`Paying ${usd} ${token.symbol}…`, `Esperando el pago de ${usd} ${token.symbol}…`));
+      setMsg(tr(`Paying ${usd} ${token.symbol}…`, `Esperando el pago de ${usd} ${token.symbol}…`, `Aguardando o pagamento de ${usd} ${token.symbol}…`));
       const hash = await pay(PAYMENT_ADDRESS, String(usd), token);
       setTxHash(hash);
       setPaymentStage("chain");
-      setMsg(tr("Activating membership…", "Activando la membresía…"));
+      setMsg(tr("Activating membership…", "Activando la membresía…", "Ativando a assinatura…"));
       let done = false;
       for (let i = 0; i < 4 && !done; i++) {
         const r = await buyMembership(key, hash);
         if (r.ok) {
-          setMsg(tr(`You're on ${key[0].toUpperCase() + key.slice(1)} · +${r.credits} credits`, `Plan ${key} activo · +${r.credits} créditos`));
+          setMsg(tr(`You're on ${key[0].toUpperCase() + key.slice(1)} · +${r.credits} credits`, `Plan ${key} activo · +${r.credits} créditos`, `Plano ${key} ativo · +${r.credits} créditos`));
           setPaymentStage("done");
           done = true;
         } else {
@@ -188,13 +188,13 @@ export function WalletPanel({ address, compact = false }: { address: string; com
       if (!done) {
         setPendingPayment({ kind: "membership", hash, tier: key });
         setPaymentStage("pending");
-        setMsg(tr("Payment sent, but membership confirmation is taking longer than expected.", "El pago fue enviado, pero la membresía está tardando en confirmarse."));
+        setMsg(tr("Payment sent, but membership confirmation is taking longer than expected.", "El pago fue enviado, pero la membresía está tardando en confirmarse.", "Pagamento enviado, mas a confirmação da assinatura está demorando mais que o esperado."));
       }
       refreshBilling();
       setTimeout(() => refetch(), 4000);
     } catch (e) {
       setPaymentStage("error");
-      setMsg(e instanceof Error ? e.message : tr("Membership payment failed", "El pago de la membresía falló"));
+      setMsg(e instanceof Error ? e.message : tr("Membership payment failed", "El pago de la membresía falló", "O pagamento da assinatura falhou"));
     } finally {
       setBusy(false);
     }
@@ -204,15 +204,15 @@ export function WalletPanel({ address, compact = false }: { address: string; com
     if (!pendingPayment || busy) return;
     setBusy(true);
     setPaymentStage("chain");
-    setMsg(tr("Checking the transaction again…", "Consultando la transacción nuevamente…"));
+    setMsg(tr("Checking the transaction again…", "Consultando la transacción nuevamente…", "Consultando a transação novamente…"));
     try {
       if (pendingPayment.kind === "pack") {
         const r = await depositCelo(pendingPayment.hash);
-        setMsg(tr(`Added ${r.added} credits`, `Se agregaron ${r.added} créditos`));
+        setMsg(tr(`Added ${r.added} credits`, `Se agregaron ${r.added} créditos`, `${r.added} créditos adicionados`));
       } else {
         const r = await buyMembership(pendingPayment.tier, pendingPayment.hash);
-        if (!r.ok) throw new Error(r.message || tr("Membership is not confirmed yet.", "La membresía todavía no está confirmada."));
-        setMsg(tr(`Membership active · +${r.credits} credits`, `Membresía activa · +${r.credits} créditos`));
+        if (!r.ok) throw new Error(r.message || tr("Membership is not confirmed yet.", "La membresía todavía no está confirmada.", "A assinatura ainda não foi confirmada."));
+        setMsg(tr(`Membership active · +${r.credits} credits`, `Membresía activa · +${r.credits} créditos`, `Assinatura ativa · +${r.credits} créditos`));
       }
       setPaymentStage("done");
       setPendingPayment(null);
@@ -220,7 +220,7 @@ export function WalletPanel({ address, compact = false }: { address: string; com
       refetch();
     } catch (e) {
       setPaymentStage("pending");
-      setMsg(e instanceof Error ? e.message : tr("Still waiting for confirmation.", "Todavía estamos esperando la confirmación."));
+      setMsg(e instanceof Error ? e.message : tr("Still waiting for confirmation.", "Todavía estamos esperando la confirmación.", "Ainda estamos aguardando a confirmação."));
     } finally {
       setBusy(false);
     }
@@ -247,27 +247,27 @@ export function WalletPanel({ address, compact = false }: { address: string; com
           {/* Compact = the dashboard's Overview already owns the credits/free
               numbers, so we don't repeat them here — just a buy affordance. */}
           {compact ? (
-            <p className="text-sm font-medium">{tr("Buy credits", "Comprar créditos")}</p>
+            <p className="text-sm font-medium">{tr("Buy credits", "Comprar créditos", "Comprar créditos")}</p>
           ) : (
             <>
-              <p className="text-xs text-[var(--muted)]">{tr("Your credits", "Tus créditos")}</p>
+              <p className="text-xs text-[var(--muted)]">{tr("Your credits", "Tus créditos", "Seus créditos")}</p>
               <p className="text-2xl font-semibold">
-                  {billing ? billing.credits : "—"} <span className="text-sm font-normal">{tr("credits", "créditos")}</span>
+                  {billing ? billing.credits : "—"} <span className="text-sm font-normal">{tr("credits", "créditos", "créditos")}</span>
               </p>
               {billing && (
                 <p className="mt-0.5 text-xs text-[var(--muted)]">
                   {billing.exempt
-                    ? tr("Sponsored, runs are free for you", "Patrocinado, los trabajos son gratis para ti")
+                    ? tr("Sponsored, runs are free for you", "Patrocinado, los trabajos son gratis para ti", "Patrocinado, os trabalhos são grátis para você")
                     : billing.membershipActive
-                      ? tr("Member, monthly credits included", "Miembro, incluye créditos mensuales")
-                      : tr(`${billing.freeWorkflowsLeft}/${billing.freeWorkflowsPerMonth} free workflows left this month`, `${billing.freeWorkflowsLeft}/${billing.freeWorkflowsPerMonth} trabajos gratis disponibles este mes`)}
+                      ? tr("Member, monthly credits included", "Miembro, incluye créditos mensuales", "Assinante, créditos mensais incluídos")
+                      : tr(`${billing.freeWorkflowsLeft}/${billing.freeWorkflowsPerMonth} free workflows left this month`, `${billing.freeWorkflowsLeft}/${billing.freeWorkflowsPerMonth} trabajos gratis disponibles este mes`, `${billing.freeWorkflowsLeft}/${billing.freeWorkflowsPerMonth} trabalhos grátis disponíveis neste mês`)}
                 </p>
               )}
             </>
           )}
         </div>
         <div className="text-right">
-          <p className="text-xs text-[var(--muted)]">{tr("In wallet", "En la wallet")}</p>
+          <p className="text-xs text-[var(--muted)]">{tr("In wallet", "En la wallet", "Na carteira")}</p>
           <p className="text-sm font-medium">{ready3 ? `$${walletUsd.toFixed(2)}` : "—"}</p>
           {ready3 && (usdtBal.value ?? 0) > 0 && (
             <p className="text-[10px] text-[var(--muted)]">{(usdtBal.value ?? 0).toFixed(2)} USDT</p>
@@ -289,7 +289,7 @@ export function WalletPanel({ address, compact = false }: { address: string; com
         ))}
       </div>
       {topUpHint && <p className="mt-2 text-xs text-amber-200/80">{topUpHint}</p>}
-      <p className="mt-2 text-xs text-[var(--muted)]">{tr("Credits pay for the work · pay with USDT, cUSD or USDC", "Los créditos pagan el trabajo · usa USDT, cUSD o USDC")}</p>
+      <p className="mt-2 text-xs text-[var(--muted)]">{tr("Credits pay for the work · pay with USDT, cUSD or USDC", "Los créditos pagan el trabajo · usa USDT, cUSD o USDC", "Os créditos pagam pelo trabalho · use USDT, cUSD ou USDC")}</p>
 
       {tierOffers.length > 0 && !showMembership && (
         <button
@@ -297,7 +297,7 @@ export function WalletPanel({ address, compact = false }: { address: string; com
           onClick={() => setShowMembership(true)}
           className="mt-3 w-full border-t border-white/10 pt-3 text-left text-xs font-medium text-[var(--accent)]"
         >
-          {tr("Use Lina often? See optional monthly plans ›", "¿Usas Lina con frecuencia? Ver planes mensuales opcionales ›")}
+          {tr("Use Anna often? See optional monthly plans ›", "¿Usas Anna con frecuencia? Ver planes mensuales opcionales ›", "Usa Anna com frequência? Veja os planos mensais opcionais ›")}
         </button>
       )}
 
@@ -305,14 +305,14 @@ export function WalletPanel({ address, compact = false }: { address: string; com
         <div className="mt-3 border-t border-white/10 pt-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium">
-              {currentTier === "basic" ? tr("Go Pro", "Cambiar a Pro") : tr("Optional monthly plans", "Planes mensuales opcionales")}
+              {currentTier === "basic" ? tr("Go Pro", "Cambiar a Pro", "Mudar para Pro") : tr("Optional monthly plans", "Planes mensuales opcionales", "Planos mensais opcionais")}
             </p>
             <button type="button" onClick={() => setShowMembership(false)} className="text-xs text-[var(--muted)]">
-              {tr("Hide", "Ocultar")}
+              {tr("Hide", "Ocultar", "Ocultar")}
             </button>
           </div>
           <p className="text-[11px] text-[var(--muted)]">
-            {tr("More credits every month and a higher analysis limit.", "Más créditos cada mes y un límite de análisis mayor.")}
+            {tr("More credits every month and a higher analysis limit.", "Más créditos cada mes y un límite de análisis mayor.", "Mais créditos todos os meses e um limite maior de análises.")}
           </p>
           <div className="mt-2 flex flex-col gap-2">
             {tierOffers.map(([key, t]) => (
@@ -325,10 +325,14 @@ export function WalletPanel({ address, compact = false }: { address: string; com
                 <span>
                   <span className="block text-sm font-medium capitalize">{key}</span>
                   <span className="block text-[11px] text-[var(--muted)]">
-                    {t.credits} credits/mo · {t.monthlyAnalysisCap} analyses
+                    {tr(
+                      `${t.credits} credits/mo · ${t.monthlyAnalysisCap} analyses`,
+                      `${t.credits} créditos/mes · ${t.monthlyAnalysisCap} análisis`,
+                      `${t.credits} créditos/mês · ${t.monthlyAnalysisCap} análises`,
+                    )}
                   </span>
                 </span>
-                <span className="text-sm font-semibold">${t.usd}/mo</span>
+                <span className="text-sm font-semibold">${t.usd}/{locale === "en" ? "mo" : locale === "es" ? "mes" : "mês"}</span>
               </button>
             ))}
           </div>
@@ -337,7 +341,9 @@ export function WalletPanel({ address, compact = false }: { address: string; com
 
       {billing?.membershipActive && (
         <p className="mt-2 text-[11px] text-[#4ade80]">
-          {currentTier === "pro" ? "Pro member" : "Member"} · renews monthly
+          {currentTier === "pro"
+            ? tr("Pro member", "Miembro Pro", "Assinante Pro")
+            : tr("Member", "Miembro", "Assinante")} · {tr("renews monthly", "se renueva mensualmente", "renova mensalmente")}
         </p>
       )}
       {msg && (
@@ -360,12 +366,12 @@ export function WalletPanel({ address, compact = false }: { address: string; com
                 rel="noreferrer"
                 className="underline underline-offset-2"
               >
-                {tr("View transaction", "Ver transacción")}
+                {tr("View transaction", "Ver transacción", "Ver transação")}
               </a>
             )}
             {paymentStage === "pending" && pendingPayment && (
               <button type="button" onClick={retryVerification} disabled={busy} className="underline underline-offset-2">
-                {tr("Check again", "Consultar nuevamente")}
+                {tr("Check again", "Consultar nuevamente", "Verificar novamente")}
               </button>
             )}
           </div>

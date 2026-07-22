@@ -1,17 +1,21 @@
 /**
- * Landing-page copy, English + Spanish (English-first, Spanish fast-follow).
+ * Landing-page copy in English, Spanish, and Brazilian Portuguese.
  * Content is the product-strategist-reconciled spec: helper + verbs framing
  * (not "AI team"), non-custodial trust, credits pricing (not hourly), real
  * template names. No em-dashes anywhere (copy rule). Neutral LatAm Spanish.
  *
  * Kept as a plain typed object (no i18n library) — a few KB of copy shipped in
  * the bundle is cheaper than a fetch + loading state on toggle, and avoids
- * restructuring the app's routes for one bilingual page.
+ * restructuring the app's routes for a compact multilingual page.
  */
 
-export type Locale = "en" | "es";
-export const LOCALES: Locale[] = ["en", "es"];
-export const LOCALE_LABELS: Record<Locale, string> = { en: "English", es: "Español" };
+export type Locale = "en" | "es" | "pt";
+export const LOCALES: Locale[] = ["en", "es", "pt"];
+export const LOCALE_LABELS: Record<Locale, string> = {
+  en: "English",
+  es: "Español",
+  pt: "Português",
+};
 
 export type LandingCopy = {
   eyebrow: string;
@@ -50,11 +54,11 @@ export type LandingCopy = {
 };
 
 const en: LandingCopy = {
-  eyebrow: "Meet Lina, your business companion",
+  eyebrow: "Meet Anna, your business companion",
   hero: {
     headline: "Your business, clearer every day",
     subhead:
-      "Lina logs sales, prepares invoices, and follows up on late payments with you. You approve every step, and your money never leaves your wallet.",
+      "Anna logs sales, prepares invoices, and follows up on late payments with you. You approve every step, and your money never leaves your wallet.",
     ctaPrimary: "Get started free",
     ctaSecondary: "See what it can do",
     enterApp: "Open the app",
@@ -74,15 +78,15 @@ const en: LandingCopy = {
     title: "How it works",
     steps: [
       { title: "Open it in MiniPay", desc: "No signup, no seed phrase. Your wallet is already there." },
-      { title: "Tell Lina what you need", desc: "Speak or type naturally. Nothing new to learn." },
-      { title: "See the plan and cost", desc: "Lina shows the steps and a small credit estimate. You approve it." },
-      { title: "Get something useful", desc: "Lina hands you what's ready. You make any payment yourself in MiniPay." },
+      { title: "Tell Anna what you need", desc: "Speak or type naturally. Nothing new to learn." },
+      { title: "See the plan and cost", desc: "Anna shows the steps and a small credit estimate. You approve it." },
+      { title: "Get something useful", desc: "Anna hands you what's ready. You make any payment yourself in MiniPay." },
     ],
     key: "It prepares the work. You stay in control of the money.",
   },
   templates: {
     title: "What it does for you",
-    subtitle: "Practical skills you can add to Lina in one tap.",
+    subtitle: "Practical skills you can add to Anna in one tap.",
     more: "See 2 more",
     items: [
       { emoji: "🧾", title: "Merchant Daily", benefit: "Log every sale in seconds and get your profit added up at the end of each week." },
@@ -122,17 +126,17 @@ const en: LandingCopy = {
   },
   minipay: {
     title: "On your phone with MiniPay?",
-    body: "Open the MiniPay app, go to Mini Apps, and find Lina there for the native experience.",
+    body: "Open the MiniPay app, go to Mini Apps, and find Anna there for the native experience.",
   },
-  footer: { built: "Built on Celo", rights: "Lina by PerkOS" },
+  footer: { built: "Built on Celo", rights: "Anna by PerkOS" },
 };
 
 const es: LandingCopy = {
-  eyebrow: "Conoce a Lina, tu compañera de negocio",
+  eyebrow: "Conoce a Anna, tu compañera de negocio",
   hero: {
     headline: "Tu negocio, más claro cada día",
     subhead:
-      "Lina registra ventas, prepara facturas y te ayuda a cobrar lo pendiente. Tú apruebas cada paso, y tu dinero nunca sale de tu wallet.",
+      "Anna registra ventas, prepara facturas y te ayuda a cobrar lo pendiente. Tú apruebas cada paso, y tu dinero nunca sale de tu wallet.",
     ctaPrimary: "Empieza gratis",
     ctaSecondary: "Mira lo que hace",
     enterApp: "Abrir la app",
@@ -152,15 +156,15 @@ const es: LandingCopy = {
     title: "Cómo funciona",
     steps: [
       { title: "Ábrelo en MiniPay", desc: "Sin registro, sin frase semilla. Tu wallet ya está ahí." },
-      { title: "Cuéntale a Lina qué necesitas", desc: "Habla o escribe con naturalidad. Nada nuevo que aprender." },
-      { title: "Revisa el plan y el costo", desc: "Lina te muestra los pasos y un pequeño estimado en créditos. Tú lo apruebas." },
-      { title: "Recibe algo útil", desc: "Lina te entrega lo que está listo. Tú haces cualquier pago desde MiniPay." },
+      { title: "Cuéntale a Anna qué necesitas", desc: "Habla o escribe con naturalidad. Nada nuevo que aprender." },
+      { title: "Revisa el plan y el costo", desc: "Anna te muestra los pasos y un pequeño estimado en créditos. Tú lo apruebas." },
+      { title: "Recibe algo útil", desc: "Anna te entrega lo que está listo. Tú haces cualquier pago desde MiniPay." },
     ],
     key: "Prepara el trabajo. Tú tienes el control del dinero.",
   },
   templates: {
     title: "Lo que hace por ti",
-    subtitle: "Capacidades prácticas que agregas a Lina con un toque.",
+    subtitle: "Capacidades prácticas que agregas a Anna con un toque.",
     more: "Ver 2 más",
     items: [
       { emoji: "🧾", title: "Comercio Diario", benefit: "Registra cada venta en segundos y ve tu ganancia sumada al final de la semana." },
@@ -200,23 +204,102 @@ const es: LandingCopy = {
   },
   minipay: {
     title: "¿En tu teléfono con MiniPay?",
-    body: "Abre la app de MiniPay, ve a Mini Apps y busca Lina para la experiencia nativa.",
+    body: "Abre la app de MiniPay, ve a Mini Apps y busca Anna para la experiencia nativa.",
   },
-  footer: { built: "Construido en Celo", rights: "Lina by PerkOS" },
+  footer: { built: "Construido en Celo", rights: "Anna by PerkOS" },
 };
 
-export const MESSAGES: Record<Locale, LandingCopy> = { en, es };
+const pt: LandingCopy = {
+  eyebrow: "Conheça Anna, sua parceira de negócios",
+  hero: {
+    headline: "Seu negócio, mais claro todos os dias",
+    subhead:
+      "Anna registra vendas, prepara faturas e ajuda você a cobrar pagamentos atrasados. Você aprova cada etapa, e seu dinheiro nunca sai da sua carteira.",
+    ctaPrimary: "Comece grátis",
+    ctaSecondary: "Veja o que ela pode fazer",
+    enterApp: "Abrir o app",
+    browserNote: "Na web, continue com e-mail ou carteira. No MiniPay, sua carteira se conecta automaticamente.",
+    trust: ["Grátis para começar", "Sem frase-semente", "Seu dinheiro fica na sua carteira"],
+  },
+  problem: {
+    title: "Parece familiar?",
+    items: [
+      "Você vive cobrando os mesmos clientes.",
+      "Você perde o controle de quem comprou fiado.",
+      "Você nunca sabe ao certo quanto lucrou na semana.",
+      "A mesma papelada ocupa sua noite todos os dias.",
+    ],
+  },
+  how: {
+    title: "Como funciona",
+    steps: [
+      { title: "Abra no MiniPay", desc: "Sem cadastro e sem frase-semente. Sua carteira já está lá." },
+      { title: "Conte para Anna o que precisa", desc: "Fale ou escreva naturalmente. Nada novo para aprender." },
+      { title: "Veja o plano e o custo", desc: "Anna mostra as etapas e uma pequena estimativa em créditos. Você aprova." },
+      { title: "Receba algo útil", desc: "Anna entrega o que estiver pronto. Você faz qualquer pagamento no MiniPay." },
+    ],
+    key: "Ela prepara o trabalho. Você mantém o controle do dinheiro.",
+  },
+  templates: {
+    title: "O que ela faz por você",
+    subtitle: "Recursos práticos que você adiciona à Anna com um toque.",
+    more: "Ver mais 2",
+    items: [
+      { emoji: "🧾", title: "Comércio Diário", benefit: "Registre cada venda em segundos e veja seu lucro somado no fim da semana." },
+      { emoji: "🛒", title: "Vendedor de Mercado", benefit: "Anote vendas rapidamente e lembre sempre quem está comprando fiado." },
+      { emoji: "📄", title: "Faturas Freelance", benefit: "Prepare faturas claras e cobre com educação as que ainda não foram pagas." },
+      { emoji: "🤝", title: "Grupo de Poupança", benefit: "Mantenha a ordem e os registros do grupo para todos saberem quem já pagou." },
+      { emoji: "🌍", title: "Comércio Internacional", benefit: "Acompanhe o que deve aos fornecedores e consulte a cotação do dia rapidamente." },
+      { emoji: "🏠", title: "Controle de Aluguel", benefit: "Receba um lembrete antes do vencimento para nunca perder uma data." },
+    ],
+  },
+  pricing: {
+    title: "Comece grátis. Pague apenas pelo trabalho.",
+    body: "Aprove cada trabalho depois de ver o preço. Os planos mensais são opcionais.",
+    highlights: [
+      { value: "3", label: "trabalhos grátis por mês" },
+      { value: "≈ $0.02", label: "por um trabalho rápido" },
+      { value: "$0.25", label: "por 10 créditos" },
+    ],
+    smallprint: "Trabalhos simples custam 1 crédito; os maiores, de 2 a 3. Você sempre vê a estimativa antes de começar.",
+  },
+  trust: {
+    title: "Confiança e controle",
+    items: [
+      "Seu dinheiro fica na sua carteira",
+      "Sem frase-semente",
+      "Funciona com stablecoins (USDT, cUSD, USDC)",
+      "Você não precisa de CELO",
+      "Pague apenas pelo que usar",
+      "Construído na Celo",
+    ],
+  },
+  social: "Feito para mais de 14 milhões de pessoas que já usam o MiniPay.",
+  finalCta: {
+    title: "Seu negócio, sem a papelada.",
+    sub: "Grátis para começar. Sem frase-semente.",
+    cta: "Comece grátis",
+  },
+  minipay: {
+    title: "Está no celular com MiniPay?",
+    body: "Abra o MiniPay, acesse Mini Apps e procure Anna para usar a experiência nativa.",
+  },
+  footer: { built: "Construído na Celo", rights: "Anna by PerkOS" },
+};
+
+export const MESSAGES: Record<Locale, LandingCopy> = { en, es, pt };
 
 /** Detect the initial locale: ?lang → localStorage → navigator → en. */
 export function detectLocale(): Locale {
   if (typeof window === "undefined") return "en";
   try {
     const q = new URLSearchParams(window.location.search).get("lang");
-    if (q === "en" || q === "es") return q;
+    if (q === "en" || q === "es" || q === "pt") return q;
     const saved = window.localStorage.getItem("perkos_lang");
-    if (saved === "en" || saved === "es") return saved;
+    if (saved === "en" || saved === "es" || saved === "pt") return saved;
     const nav = (navigator.language || "en").toLowerCase();
     if (nav.startsWith("es")) return "es";
+    if (nav.startsWith("pt")) return "pt";
   } catch {
     /* ignore */
   }

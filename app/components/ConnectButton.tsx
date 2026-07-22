@@ -1,7 +1,7 @@
 "use client";
 
 import { useConnect } from "wagmi";
-import { useLanguage } from "../lib/i18n";
+import { translated, useLanguage } from "../lib/i18n";
 
 /**
  * Browser-only connect button. MiniPay connects implicitly (no button), but in a regular browser
@@ -20,13 +20,16 @@ export function ConnectButton() {
         className="rounded-2xl bg-[var(--accent)] px-5 py-3 font-medium text-white disabled:opacity-60"
       >
         {status === "pending"
-          ? locale === "es" ? "Conectando…" : "Connecting…"
-          : locale === "es" ? "Conectar wallet" : "Connect wallet"}
+          ? translated(locale, "Connecting…", "Conectando…", "Conectando…")
+          : translated(locale, "Connect wallet", "Conectar wallet", "Conectar carteira")}
       </button>
       <p className="max-w-xs text-xs text-[var(--muted)]">
-        {locale === "es"
-          ? "¿Probando en un navegador? Conecta una wallet (MetaMask/Rabby) en Celo."
-          : "Testing in a browser? Connect a wallet (MetaMask/Rabby) on Celo."}
+        {translated(
+          locale,
+          "Testing in a browser? Connect a wallet (MetaMask/Rabby) and choose Celo, Base, or Robinhood Chain above.",
+          "¿Probando en un navegador? Conecta una wallet (MetaMask/Rabby) y elige Celo, Base o Robinhood Chain arriba.",
+          "Testando no navegador? Conecte uma carteira (MetaMask/Rabby) e escolha Celo, Base ou Robinhood Chain acima.",
+        )}
       </p>
       {error && <p className="max-w-xs text-xs text-red-300">{error.message}</p>}
     </div>

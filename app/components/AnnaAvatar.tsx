@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 
-type LinaAvatarProps = {
+type AnnaAvatarProps = {
   className?: string;
   size?: "sm" | "md" | "lg" | "hero";
   decorative?: boolean;
@@ -14,34 +14,34 @@ const sizes = {
   hero: "h-44 w-44",
 };
 
-const stateSources: Record<NonNullable<LinaAvatarProps["state"]>, string> = {
-  default: "/lina/lina-avatar.png",
-  welcome: "/lina/lina-welcome.png",
-  thinking: "/lina/lina-thinking.png",
-  recommending: "/lina/lina-recommending.png",
-  celebrating: "/lina/lina-celebrating.png",
-  alerting: "/lina/lina-alerting.png",
-  resting: "/lina/lina-resting.png",
+const stateSources: Record<NonNullable<AnnaAvatarProps["state"]>, string> = {
+  default: "/anna/anna-avatar.png",
+  welcome: "/anna/anna-welcome.png",
+  thinking: "/anna/anna-thinking.png",
+  recommending: "/anna/anna-recommending.png",
+  celebrating: "/anna/anna-celebrating.png",
+  alerting: "/anna/anna-alerting.png",
+  resting: "/anna/anna-resting.png",
 };
 
 /**
- * Lina is the customer-facing business companion. The underlying specialist
+ * Anna is the customer-facing business companion. The underlying specialist
  * fleet remains implementation detail; this portrait is the consistent human
  * entry point across onboarding, navigation and conversations.
  */
-export function LinaAvatar({
+export function AnnaAvatar({
   className = "",
   size = "md",
   decorative = false,
   state = "default",
-}: LinaAvatarProps) {
+}: AnnaAvatarProps) {
   return (
     <span
       className={`relative inline-grid shrink-0 place-items-center overflow-hidden rounded-full bg-[#173d32] ring-1 ring-white/15 ${sizes[size]} ${className}`}
     >
       <img
         src={stateSources[state]}
-        alt={decorative ? "" : "Lina"}
+        alt={decorative ? "" : "Anna"}
         className="h-full w-full object-cover object-[50%_28%]"
       />
     </span>

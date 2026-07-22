@@ -1,11 +1,13 @@
-# PerkOS-MiniPay
+# Anna by PerkOS
 
-**Money & customer tools for your business — inside your wallet.** A gallery of AI helpers built on **Celo**
-and delivered as a Mini App inside **Opera MiniPay**. Pay only for the work, in **cUSD**.
+**Your practical business companion — inside your wallet.** Anna helps small-business owners track sales,
+prepare invoices, organize follow-ups, and understand what needs attention next. It runs on **Celo** and is
+delivered as a Mini App inside **Opera MiniPay**. Users approve every step and keep control of their money.
 
-This is the Celo/MiniPay surface of [PerkOS](https://app.perkos.xyz). A small-business owner picks a **tool**
-(Merchant Daily, Savings Group, Freelance Invoices, Rent Tracker, …), and it activates instantly on a shared
-fleet of **PerkOS-owned agents** — no deployment, no waiting. The user just chats with their helpers.
+This repository contains the Celo/MiniPay surface of [PerkOS](https://app.perkos.xyz). In the product, Anna
+is the single customer-facing identity. A small-business owner adds a capability such as Merchant Daily,
+Savings Group, Freelance Invoices, or Rent Tracker and then works with Anna through one simple conversation.
+The shared specialist fleet remains an internal implementation detail.
 
 > Full research + the shared-agents design: [`docs/PERKOS-MINIPAY-RESEARCH.md`](docs/PERKOS-MINIPAY-RESEARCH.md).
 
@@ -108,10 +110,12 @@ flowchart TB
 |------|----------------|
 | Implicit connection — no "Connect Wallet" button in MiniPay | [`app/components/AutoConnect.tsx`](app/components/AutoConnect.tsx) |
 | Detect MiniPay via `window.ethereum.isMiniPay` | [`app/lib/useIsMiniPay.ts`](app/lib/useIsMiniPay.ts) |
-| Celo-only chains + injected connector | [`app/lib/wagmi.ts`](app/lib/wagmi.ts) |
+| MiniPay fixed to Celo; browser supports Celo, Base, and Robinhood Chain | [`app/lib/wagmi.ts`](app/lib/wagmi.ts), [`app/lib/browserChains.ts`](app/lib/browserChains.ts) |
 | Stablecoins + decimals (cUSD=18, USDC/USDT=6) | [`app/lib/tokenAddresses.ts`](app/lib/tokenAddresses.ts) |
 | Gas in cUSD (`feeCurrency`) + legacy tx only | [`app/lib/celo.ts`](app/lib/celo.ts) |
 | Browser wallet via Dynamic (bridgeless, wagmi v3) | [`app/components/DynamicProviders.tsx`](app/components/DynamicProviders.tsx) |
+| Browser-only chain selector; hidden inside MiniPay | [`app/components/BrowserChainSelect.tsx`](app/components/BrowserChainSelect.tsx) |
+| Browser language detection + EN/ES/PT selector | [`app/lib/landingMessages.ts`](app/lib/landingMessages.ts), [`app/components/LanguageSelect.tsx`](app/components/LanguageSelect.tsx) |
 | Real-time chat over PerkOS-Chat (WS) | [`app/lib/chatClient.ts`](app/lib/chatClient.ts), [`app/lib/useChatConversation.ts`](app/lib/useChatConversation.ts) |
 | Template catalog (15 basics × 20 templates) | [`app/lib/templateCatalog.ts`](app/lib/templateCatalog.ts) |
 

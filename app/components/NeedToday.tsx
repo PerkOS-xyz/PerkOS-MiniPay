@@ -8,7 +8,7 @@ import { useVoiceInput } from "../lib/useVoiceInput";
 import { Brand } from "./Brand";
 import { LanguageSelect } from "./LanguageSelect";
 import { useLanguage } from "../lib/i18n";
-import { LinaAvatar } from "./LinaAvatar";
+import { AnnaAvatar } from "./AnnaAvatar";
 
 // First-run entry: one question, three common money chores, and a speak-or-type
 // box. Replaces the cold ~20-card gallery. Each chore maps to a starter team
@@ -24,7 +24,7 @@ export function NeedToday({
   const { locale } = useLanguage();
   const t = locale === "es"
       ? {
-        title: "Hola, soy Lina",
+        title: "Hola, soy Anna",
         subtitle: "¿Qué necesitas resolver hoy? Elige una opción o cuéntamelo con tus propias palabras.",
         placeholder: "Ejemplo: ¿Cuánto gané esta semana?",
         stop: "Dejar de escuchar",
@@ -35,8 +35,21 @@ export function NeedToday({
         starting: "Iniciando…",
         error: "No se pudo iniciar. Inténtalo nuevamente.",
       }
+      : locale === "pt"
+        ? {
+          title: "Olá, eu sou Anna",
+          subtitle: "O que você precisa resolver hoje? Escolha uma opção ou conte com suas próprias palavras.",
+          placeholder: "Exemplo: quanto ganhei esta semana?",
+          stop: "Parar de ouvir",
+          speak: "Falar",
+          listening: "Ouvindo…",
+          hint: "Falar é mais fácil que escrever. Toque em Falar.",
+          go: "Continuar",
+          starting: "Iniciando…",
+          error: "Não foi possível iniciar. Tente novamente.",
+        }
       : {
-        title: "Hi, I'm Lina",
+        title: "Hi, I'm Anna",
         subtitle: "What do you need done today? Pick one, or tell me in your own words.",
         placeholder: "e.g. How much did I earn this week?",
         stop: "Stop listening",
@@ -83,7 +96,7 @@ export function NeedToday({
       </header>
 
       <div className="flex items-center gap-4 rounded-3xl border border-white/10 bg-white/5 p-4">
-        <LinaAvatar size="lg" state="welcome" />
+        <AnnaAvatar size="lg" state="welcome" />
         <div className="flex min-w-0 flex-col gap-1">
           <h1 className="text-2xl font-semibold">{t.title}</h1>
           <p className="text-sm leading-relaxed text-[var(--muted)]">{t.subtitle}</p>

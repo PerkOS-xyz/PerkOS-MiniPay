@@ -27,7 +27,7 @@ import { TeamThread } from "./TeamThread";
 import { ServerWallet } from "./ServerWallet";
 import { LanguageSelect } from "./LanguageSelect";
 import { useLanguage } from "../lib/i18n";
-import { LinaAvatar } from "./LinaAvatar";
+import { AnnaAvatar } from "./AnnaAvatar";
 
 type Loaded = {
   agents: Agent[];
@@ -46,16 +46,25 @@ export function Home({ address }: { address: string }) {
         teamWallet: "Wallet del negocio",
         logout: "Cerrar sesión",
         addHelper: "Agregar una capacidad",
-        addHelperSub: "Dale a Lina más formas de ayudarte con dinero y clientes. Solo pagas por el trabajo.",
-        back: "‹ Volver con Lina",
+        addHelperSub: "Dale a Anna más formas de ayudarte con dinero y clientes. Solo pagas por el trabajo.",
+        back: "‹ Volver con Anna",
+      }
+    : locale === "pt"
+      ? {
+        loading: "Carregando…",
+        teamWallet: "Carteira do negócio",
+        logout: "Sair",
+        addHelper: "Adicionar uma habilidade",
+        addHelperSub: "Dê à Anna mais formas de ajudar com dinheiro e clientes. Você paga apenas pelo trabalho.",
+        back: "‹ Voltar para Anna",
       }
     : {
         loading: "Loading…",
         teamWallet: "Business wallet",
         logout: "Log out",
         addHelper: "Add a skill",
-        addHelperSub: "Give Lina more ways to help with money and customers. You only pay for the work.",
-        back: "‹ Back to Lina",
+        addHelperSub: "Give Anna more ways to help with money and customers. You only pay for the work.",
+        back: "‹ Back to Anna",
       };
   // Logout is browser-only: inside MiniPay the wallet is the host identity
   // and connection is implicit (rule C1) — no logout affordance there.
@@ -88,7 +97,7 @@ export function Home({ address }: { address: string }) {
       const tasksByProject = new Map(projects.map((p, i) => [p.id, taskLists[i] ?? []]));
       setData({ agents, projects, templates, billing, activity, tasksByProject });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't load Lina");
+      setError(e instanceof Error ? e.message : "Couldn't load Anna");
     }
   }, [address]);
 
@@ -257,15 +266,17 @@ function ProjectView({
 }) {
   const { locale } = useLanguage();
   const teamLabel = locale === "es"
-    ? "Lina está lista para ayudarte"
-    : "Lina is ready to help";
+    ? "Anna está lista para ayudarte"
+    : locale === "pt"
+      ? "Anna está pronta para ajudar"
+      : "Anna is ready to help";
   return (
     <main className="flex h-[100dvh] flex-col px-5 pb-3 pt-4">
       <header className="flex items-center gap-3">
         <button onClick={onBack} aria-label="Back" className="-ml-1 px-1 text-2xl leading-none">
           ‹
         </button>
-        <LinaAvatar size="sm" state="resting" />
+        <AnnaAvatar size="sm" state="resting" />
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-lg font-semibold">{template?.name ?? project.name}</h1>
           <p className="truncate text-xs text-[var(--muted)]">

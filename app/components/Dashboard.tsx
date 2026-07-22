@@ -17,7 +17,8 @@ import { collectPendingTasks, countDoneTasks, toolTaskSummary } from "../lib/das
 import { WalletPanel } from "./WalletPanel";
 import { DiagnosticPanel } from "./DiagnosticPanel";
 import { CREDIT_USD } from "../lib/credits";
-import { useLanguage } from "../lib/i18n";
+import { translated, useLanguage } from "../lib/i18n";
+import type { Locale } from "../lib/landingMessages";
 
 /**
  * MiniPay in-app Dashboard (default view once the user has activated tools).
@@ -54,7 +55,7 @@ export function Dashboard({
   onRewardClaimed,
 }: Props) {
   const { locale } = useLanguage();
-  const es = locale === "es";
+  const tr = (en: string, es: string, pt: string) => translated(locale, en, es, pt);
   const [claiming, setClaiming] = useState(false);
 
   async function handleClaim() {
@@ -80,7 +81,7 @@ export function Dashboard({
   const credits = billing?.credits ?? 0;
   const exempt = billing?.exempt ?? false;
   const tier = billing?.membershipTier ?? "free";
-  const tierLabel = tier === "free" ? (es ? "Gratis" : "Free") : tier.charAt(0).toUpperCase() + tier.slice(1);
+  const tierLabel = tier === "free" ? tr("Free", "Gratis", "Grátis") : tier.charAt(0).toUpperCase() + tier.slice(1);
   const analysesLeft = billing?.analysesLeft;
   const analysisCap = billing?.monthlyAnalysisCap;
 
@@ -90,29 +91,29 @@ export function Dashboard({
       <section className="grid grid-cols-2 gap-3">
         <Stat
           emoji="💳"
-          label={es ? "Créditos" : "Credits"}
+          label={tr("Credits", "Créditos", "Créditos")}
           value={billing ? String(credits) : null}
           secondary={billing ? `≈ $${(credits * CREDIT_USD).toFixed(2)}` : ""}
         />
         <Stat
           emoji="🎟️"
-          label={es ? "Plan" : "Plan"}
-          value={billing ? (exempt ? (es ? "Patrocinado" : "Sponsored") : tierLabel) : null}
+          label={tr("Plan", "Plan", "Plano")}
+          value={billing ? (exempt ? tr("Sponsored", "Patrocinado", "Patrocinado") : tierLabel) : null}
           secondary={
             exempt
-              ? es ? "Sin límite" : "Unlimited"
+              ? tr("Unlimited", "Sin límite", "Ilimitado")
               : analysesLeft != null && analysisCap != null
-                ? es ? `${analysesLeft}/${analysisCap} análisis disponibles` : `${analysesLeft}/${analysisCap} analyses left`
-                : es ? "este mes" : "this month"
+                ? tr(`${analysesLeft}/${analysisCap} analyses left`, `${analysesLeft}/${analysisCap} análisis disponibles`, `${analysesLeft}/${analysisCap} análises disponíveis`)
+                : tr("this month", "este mes", "neste mês")
           }
         />
         <Stat
           emoji="🧰"
-          label={es ? "Herramientas activas" : "Active tools"}
+          label={tr("Active tools", "Herramientas activas", "Ferramentas ativas")}
           value={String(projects.length)}
-          secondary={onlineCount > 0 ? (es ? `${onlineCount} en línea` : `${onlineCount} online now`) : es ? "iniciando" : "warming up"}
+          secondary={onlineCount > 0 ? tr(`${onlineCount} online now`, `${onlineCount} en línea`, `${onlineCount} online agora`) : tr("warming up", "iniciando", "iniciando")}
         />
-        <Stat emoji="✅" label={es ? "Trabajos listos" : "Jobs done"} value={String(tasksDone)} secondary={es ? "total" : "all time"} />
+        <Stat emoji="✅" label={tr("Jobs done", "Trabajos listos", "Trabalhos concluídos")} value={String(tasksDone)} secondary={tr("all time", "total", "total")} />
       </section>
 
       {/* Free monthly reward — manual claim, tops up to the target */}
@@ -127,10 +128,16 @@ export function Dashboard({
           </span>
           <span className="min-w-0 flex-1">
             <span className="block font-medium text-[#4ade80]">
-              {claiming ? (es ? "Reclamando…" : "Claiming…") : es ? `Reclamar ${(billing.rewardTarget ?? 15) - credits} créditos gratis` : `Claim ${(billing.rewardTarget ?? 15) - credits} free credits`}
+              {claiming
+                ? tr("Claiming…", "Reclamando…", "Resgatando…")
+                : tr(
+                    `Claim ${(billing.rewardTarget ?? 15) - credits} free credits`,
+                    `Reclamar ${(billing.rewardTarget ?? 15) - credits} créditos gratis`,
+                    `Resgatar ${(billing.rewardTarget ?? 15) - credits} créditos grátis`,
+                  )}
             </span>
             <span className="block text-xs text-[var(--muted)]">
-              {es ? "Planifica con Lina y recibe créditos gratis cada mes." : "Plan with Lina and receive free credits each month."}
+              {tr("Plan with Anna and receive free credits each month.", "Planifica con Anna y recibe créditos gratis cada mes.", "Planeje com Anna e receba créditos grátis todos os meses.")}
             </span>
           </span>
         </button>
@@ -141,9 +148,9 @@ export function Dashboard({
 
       {/* What your team is on */}
       <section className="flex flex-col gap-2">
-        <SectionHeader label={es ? "Necesita tu atención" : "Needs your attention"} count={pending.length || undefined} />
+        <SectionHeader label={tr("Needs your attention", "Necesita tu atención", "Precisa da sua atenção")} count={pending.length || undefined} />
         {pending.length === 0 ? (
-          <EmptyCard text={es ? "Nada pendiente. Dale un objetivo a una herramienta para empezar." : "Nothing queued. Give a tool a goal to get started."} />
+          <EmptyCard text={tr("Nothing queued. Give a tool a goal to get started.", "Nada pendiente. Dale un objetivo a una herramienta para empezar.", "Nada pendente. Dê um objetivo a uma ferramenta para começar.")} />
         ) : (
           pending.map((t) => {
             const proj = projectById.get(t.projectId);
@@ -171,17 +178,17 @@ export function Dashboard({
 
       {/* Your tools */}
       <section className="flex flex-col gap-2">
-        <SectionHeader label={es ? "Tus herramientas" : "Your tools"} />
+        <SectionHeader label={tr("Your tools", "Tus herramientas", "Suas ferramentas")} />
         {projects.map((p) => {
           const tpl = templateFor(p);
           const tasks = tasksByProject.get(p.id) ?? [];
           const { queued, done } = toolTaskSummary(tasks);
           const summary =
             queued > 0
-              ? es ? `${queued} en progreso` : `${queued} in progress`
+              ? tr(`${queued} in progress`, `${queued} en progreso`, `${queued} em andamento`)
               : done > 0
-                ? es ? `${done} listos` : `${done} done`
-                : tpl?.tagline ?? (es ? "Lista para usar con Lina" : "Ready to use with Lina");
+                ? tr(`${done} done`, `${done} listos`, `${done} concluídos`)
+                : tpl?.tagline ?? tr("Ready to use with Anna", "Lista para usar con Anna", "Pronta para usar com Anna");
           return (
             <button
               key={p.id}
@@ -204,8 +211,8 @@ export function Dashboard({
                 style={{ background: isOnline(p) ? "#4ade80" : "#9ca3af" }}
                 aria-label={
                   isOnline(p)
-                    ? es ? "en línea" : "online"
-                    : es ? "iniciando" : "warming up"
+                    ? tr("online", "en línea", "online")
+                    : tr("warming up", "iniciando", "iniciando")
                 }
               />
               <span className="shrink-0 text-lg text-[var(--muted)]" aria-hidden>
@@ -218,16 +225,16 @@ export function Dashboard({
           onClick={onAddTool}
           className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-4 py-3 text-sm font-medium text-[var(--accent)] active:bg-white/5"
         >
-          {es ? "＋ Agregar una herramienta" : "＋ Add a tool"}
+          {tr("＋ Add a tool", "＋ Agregar una herramienta", "＋ Adicionar uma ferramenta")}
         </button>
       </section>
 
       {/* Recent activity */}
       <section className="flex flex-col gap-1">
-        <SectionHeader label={es ? "Actividad reciente" : "Recent activity"} />
+        <SectionHeader label={tr("Recent activity", "Actividad reciente", "Atividade recente")} />
         {activity.length === 0 ? (
           <p className="py-4 text-center text-sm text-[var(--muted)]">
-            {es ? "Todavía no hay actividad. Cuando Lina empiece a trabajar, aparecerá aquí." : "No activity yet. Once Lina starts working, you'll see it here."}
+            {tr("No activity yet. Once Anna starts working, you'll see it here.", "Todavía no hay actividad. Cuando Anna empiece a trabajar, aparecerá aquí.", "Ainda não há atividade. Quando Anna começar a trabalhar, ela aparecerá aqui.")}
           </p>
         ) : (
           activity.slice(0, 6).map((e) => {
@@ -238,7 +245,7 @@ export function Dashboard({
                   {v.emoji}
                 </span>
                 <span className="min-w-0 flex-1 text-sm">
-                  <span className="font-medium">{e.actor || "Lina"}</span> {v.phrase}{" "}
+                  <span className="font-medium">{e.actor || "Anna"}</span> {v.phrase}{" "}
                   <span className="text-[var(--muted)]">{e.object}</span>
                   {e.detail ? <span className="text-[var(--muted)]"> · {e.detail}</span> : null}
                 </span>
@@ -293,7 +300,7 @@ function SectionHeader({ label, count }: { label: string; count?: number }) {
   );
 }
 
-function StatusChip({ status, locale }: { status: Task["status"]; locale: "en" | "es" }) {
+function StatusChip({ status, locale }: { status: Task["status"]; locale: Locale }) {
   const cls =
     status === "In progress"
       ? "bg-[var(--accent)]/20 text-[var(--accent)]"
@@ -302,13 +309,13 @@ function StatusChip({ status, locale }: { status: Task["status"]; locale: "en" |
         : "bg-white/10 text-[var(--muted)]";
   return (
     <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wide ${cls}`}>
-      {locale === "es"
+      {locale === "es" || locale === "pt"
         ? status === "In progress"
-          ? "En progreso"
+          ? locale === "pt" ? "Em andamento" : "En progreso"
           : status === "Review"
-            ? "Revisar"
+            ? locale === "pt" ? "Revisar" : "Revisar"
             : status === "Done"
-              ? "Listo"
+              ? locale === "pt" ? "Concluído" : "Listo"
               : status
         : status}
     </span>
@@ -323,49 +330,51 @@ function EmptyCard({ text }: { text: string }) {
   );
 }
 
-function verbView(verb: string, locale: "en" | "es"): { emoji: string; phrase: string } {
+function verbView(verb: string, locale: Locale): { emoji: string; phrase: string } {
   const es = locale === "es";
+  const pt = locale === "pt";
   switch (verb) {
     case "proposed_plan":
-      return { emoji: "🧭", phrase: es ? "propuso un plan" : "proposed a plan" };
+      return { emoji: "🧭", phrase: es ? "propuso un plan" : pt ? "propôs um plano" : "proposed a plan" };
     case "approved_plan":
-      return { emoji: "👍", phrase: es ? "aprobó" : "approved" };
+      return { emoji: "👍", phrase: es ? "aprobó" : pt ? "aprovou" : "approved" };
     case "planned":
-      return { emoji: "🗂️", phrase: es ? "planificó" : "planned" };
+      return { emoji: "🗂️", phrase: es ? "planificó" : pt ? "planejou" : "planned" };
     case "created_task":
-      return { emoji: "🗂️", phrase: es ? "agregó" : "added" };
+      return { emoji: "🗂️", phrase: es ? "agregó" : pt ? "adicionou" : "added" };
     case "started_task":
-      return { emoji: "▶️", phrase: es ? "inició" : "started" };
+      return { emoji: "▶️", phrase: es ? "inició" : pt ? "iniciou" : "started" };
     case "completed_task":
-      return { emoji: "✅", phrase: es ? "terminó" : "finished" };
+      return { emoji: "✅", phrase: es ? "terminó" : pt ? "concluiu" : "finished" };
     case "moved_task":
-      return { emoji: "↔️", phrase: es ? "actualizó" : "updated" };
+      return { emoji: "↔️", phrase: es ? "actualizó" : pt ? "atualizou" : "updated" };
     case "retried_task":
-      return { emoji: "🔁", phrase: es ? "reintentó" : "retried" };
+      return { emoji: "🔁", phrase: es ? "reintentó" : pt ? "tentou novamente" : "retried" };
     case "goal_done":
-      return { emoji: "🎉", phrase: es ? "completó el objetivo" : "finished the goal" };
+      return { emoji: "🎉", phrase: es ? "completó el objetivo" : pt ? "concluiu o objetivo" : "finished the goal" };
     case "launched_agent":
-      return { emoji: "🚀", phrase: es ? "activó" : "launched" };
+      return { emoji: "🚀", phrase: es ? "activó" : pt ? "ativou" : "launched" };
     case "agent_online":
-      return { emoji: "🟢", phrase: es ? "se conectó" : "came online" };
+      return { emoji: "🟢", phrase: es ? "se conectó" : pt ? "ficou online" : "came online" };
     case "created_project":
-      return { emoji: "✨", phrase: es ? "creó" : "created" };
+      return { emoji: "✨", phrase: es ? "creó" : pt ? "criou" : "created" };
     default:
       return { emoji: "•", phrase: verb.replace(/_/g, " ") };
   }
 }
 
-function relTime(ts: number, locale: "en" | "es"): string {
+function relTime(ts: number, locale: Locale): string {
   const es = locale === "es";
+  const pt = locale === "pt";
   if (!ts) return "";
   const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
-  if (s < 60) return es ? "ahora" : "just now";
+  if (s < 60) return es ? "ahora" : pt ? "agora" : "just now";
   const m = Math.floor(s / 60);
   if (m < 60) return `${m}m`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h`;
   const d = Math.floor(h / 24);
-  if (d === 1) return es ? "ayer" : "yesterday";
+  if (d === 1) return es ? "ayer" : pt ? "ontem" : "yesterday";
   if (d < 7) return `${d}d`;
   return `${Math.floor(d / 7)}w`;
 }

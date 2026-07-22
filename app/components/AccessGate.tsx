@@ -4,7 +4,7 @@ import { useMemo, useState, type FormEvent } from "react";
 
 import { useWalletSession } from "@/app/lib/useWalletSession";
 import { useMiniPayHost } from "@/app/lib/useIsMiniPay";
-import { useLanguage } from "@/app/lib/i18n";
+import { translated, useLanguage } from "@/app/lib/i18n";
 
 /**
  * Shown on the `not-allowlisted` gate (PERKOS_PUBLIC_MODE=false). One form,
@@ -16,7 +16,7 @@ import { useLanguage } from "@/app/lib/i18n";
  */
 export function AccessGate({ address }: { address: string }) {
   const { locale } = useLanguage();
-  const tr = (en: string, es: string) => locale === "es" ? es : en;
+  const tr = (en: string, es: string, pt: string) => translated(locale, en, es, pt);
   const session = useWalletSession();
   const isMiniPayHost = useMiniPayHost();
 
@@ -85,7 +85,7 @@ export function AccessGate({ address }: { address: string }) {
         });
         if (!res.ok) {
           const payload = (await res.json().catch(() => ({}))) as { error?: string };
-          throw new Error(payload.error || tr(`Couldn't redeem the code (${res.status}).`, `No se pudo canjear el código (${res.status}).`));
+          throw new Error(payload.error || tr(`Couldn't redeem the code (${res.status}).`, `No se pudo canjear el código (${res.status}).`, `Não foi possível resgatar o código (${res.status}).`));
         }
         // Allowlisted now → full reload so the wallet session re-signs-in and
         // picks up the fresh grant, landing straight in the app.
@@ -106,11 +106,11 @@ export function AccessGate({ address }: { address: string }) {
       });
       if (!res.ok) {
         const payload = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(payload.error || tr(`Couldn't send your request (${res.status}).`, `No se pudo enviar la solicitud (${res.status}).`));
+        throw new Error(payload.error || tr(`Couldn't send your request (${res.status}).`, `No se pudo enviar la solicitud (${res.status}).`, `Não foi possível enviar sua solicitação (${res.status}).`));
       }
       setSubmitted(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : tr("Something went wrong. Try again.", "Algo salió mal. Inténtalo nuevamente."));
+      setError(err instanceof Error ? err.message : tr("Something went wrong. Try again.", "Algo salió mal. Inténtalo nuevamente.", "Algo deu errado. Tente novamente."));
     } finally {
       setSubmitting(false);
     }
@@ -123,9 +123,9 @@ export function AccessGate({ address }: { address: string }) {
   if (submitted) {
     return (
       <div className="mt-4 w-full max-w-sm rounded-2xl border border-emerald-400/30 bg-emerald-400/10 p-5 text-center">
-        <p className="text-sm font-medium text-emerald-200">{tr("You're on the list", "Estás en la lista")}</p>
+        <p className="text-sm font-medium text-emerald-200">{tr("You're on the list", "Estás en la lista", "Você está na lista")}</p>
         <p className="mt-1 text-xs text-[var(--muted)]">
-          {tr("We'll review your request and email you when your wallet is approved.", "Revisaremos tu solicitud y te enviaremos un email cuando tu wallet sea aprobada.")}
+          {tr("We'll review your request and email you when your wallet is approved.", "Revisaremos tu solicitud y te enviaremos un email cuando tu wallet sea aprobada.", "Analisaremos sua solicitação e enviaremos um e-mail quando sua carteira for aprovada.")}
         </p>
       </div>
     );
@@ -133,13 +133,13 @@ export function AccessGate({ address }: { address: string }) {
 
   return (
     <div className="mt-4 w-full max-w-sm rounded-2xl border border-white/10 bg-white/5 p-5 text-left">
-      <p className="text-sm font-medium text-[var(--foreground)]">{tr("Get access", "Obtener acceso")}</p>
+      <p className="text-sm font-medium text-[var(--foreground)]">{tr("Get access", "Obtener acceso", "Obter acesso")}</p>
       <p className="mt-1 text-xs text-[var(--muted)]">
-        {tr("Have an access code? Redeem it to enter. No code? Request access and we'll email you.", "¿Tienes un código? Canjéalo para entrar. Si no, solicita acceso y te enviaremos un email.")}
+        {tr("Have an access code? Redeem it to enter. No code? Request access and we'll email you.", "¿Tienes un código? Canjéalo para entrar. Si no, solicita acceso y te enviaremos un email.", "Tem um código de acesso? Resgate-o para entrar. Sem código? Solicite acesso e enviaremos um e-mail.")}
       </p>
 
       <div className="mt-3 flex flex-col gap-1 rounded-xl border border-white/10 bg-black/25 px-3 py-2">
-        <span className={labelCls}>{tr("Your wallet", "Tu wallet")}</span>
+        <span className={labelCls}>{tr("Your wallet", "Tu wallet", "Sua carteira")}</span>
         <div className="flex items-start gap-2">
           <span className="min-w-0 flex-1 break-all font-mono text-[11px] text-[var(--foreground)]">
             {address}
@@ -149,7 +149,7 @@ export function AccessGate({ address }: { address: string }) {
             onClick={copyAddress}
             className="shrink-0 text-[11px] text-[var(--accent)]"
           >
-            {copied ? tr("Copied", "Copiado") : tr("Copy", "Copiar")}
+            {copied ? tr("Copied", "Copiado", "Copiado") : tr("Copy", "Copiar", "Copiar")}
           </button>
         </div>
       </div>
@@ -157,7 +157,7 @@ export function AccessGate({ address }: { address: string }) {
       <form onSubmit={onSubmit} noValidate className="mt-3 flex flex-col gap-3">
         <div className="flex flex-col gap-1">
           <label htmlFor="ag-code" className={labelCls}>
-            {tr("Access code (optional)", "Código de acceso (opcional)")}
+            {tr("Access code (optional)", "Código de acceso (opcional)", "Código de acesso (opcional)")}
           </label>
           <input
             id="ag-code"
@@ -183,13 +183,13 @@ export function AccessGate({ address }: { address: string }) {
             className={inputCls}
           />
           {attempted && !emailValid ? (
-            <p className="text-[11px] text-red-300">{tr("Enter a valid email.", "Ingresa un email válido.")}</p>
+            <p className="text-[11px] text-red-300">{tr("Enter a valid email.", "Ingresa un email válido.", "Digite um e-mail válido.")}</p>
           ) : null}
         </div>
 
         <div className="flex flex-col gap-1">
           <label htmlFor="ag-username" className={labelCls}>
-            {tr("Username", "Usuario")}
+            {tr("Username", "Usuario", "Nome de usuário")}
           </label>
           <input
             id="ag-username"
@@ -200,20 +200,20 @@ export function AccessGate({ address }: { address: string }) {
             className={inputCls}
           />
           {attempted && hasCode && !usernameValid ? (
-            <p className="text-[11px] text-red-300">{tr("3-20 characters: letters, numbers, _ or -.", "3-20 caracteres: letras, números, _ o -.")}</p>
+            <p className="text-[11px] text-red-300">{tr("3-20 characters: letters, numbers, _ or -.", "3-20 caracteres: letras, números, _ o -.", "3-20 caracteres: letras, números, _ ou -.")}</p>
           ) : null}
         </div>
 
         {!hasCode ? (
           <div className="flex flex-col gap-1">
             <label htmlFor="ag-company" className={labelCls}>
-              {tr("Business", "Negocio")}
+              {tr("Business", "Negocio", "Negócio")}
             </label>
             <input
               id="ag-company"
               value={company}
               onChange={(e) => setCompany(e.target.value)}
-              placeholder={tr("Your business name", "Nombre de tu negocio")}
+              placeholder={tr("Your business name", "Nombre de tu negocio", "Nome do seu negócio")}
               className={inputCls}
             />
           </div>
@@ -221,7 +221,7 @@ export function AccessGate({ address }: { address: string }) {
 
         <div className="flex flex-col gap-1">
           <label htmlFor="ag-website" className={labelCls}>
-            {tr("Website (optional)", "Sitio web (opcional)")}
+            {tr("Website (optional)", "Sitio web (opcional)", "Site (opcional)")}
           </label>
           <input
             id="ag-website"
@@ -246,11 +246,11 @@ export function AccessGate({ address }: { address: string }) {
         >
           {submitting
             ? hasCode
-              ? tr("Granting…", "Concediendo…")
-              : tr("Sending…", "Enviando…")
+              ? tr("Granting…", "Concediendo…", "Concedendo…")
+              : tr("Sending…", "Enviando…", "Enviando…")
             : hasCode
-              ? tr("Redeem and enter", "Canjear y entrar")
-              : tr("Request access", "Solicitar acceso")}
+              ? tr("Redeem and enter", "Canjear y entrar", "Resgatar e entrar")
+              : tr("Request access", "Solicitar acceso", "Solicitar acesso")}
         </button>
       </form>
 
@@ -263,7 +263,7 @@ export function AccessGate({ address }: { address: string }) {
           onClick={useDifferentWallet}
           className="mt-3 w-full text-center text-[11px] text-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-60"
         >
-          {loggingOut ? tr("Switching…", "Cambiando…") : tr("Use a different wallet", "Usar otra wallet")}
+          {loggingOut ? tr("Switching…", "Cambiando…", "Trocando…") : tr("Use a different wallet", "Usar otra wallet", "Usar outra carteira")}
         </button>
       ) : null}
     </div>

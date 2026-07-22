@@ -20,12 +20,12 @@ describe("first-run workflow", () => {
     ).toBe(true);
   });
 
-  it("has complete English and Spanish shortcut copy", () => {
+  it("has complete English, Spanish, and Portuguese shortcut copy", () => {
     for (const chore of STARTER_CHORES) {
-      expect(chore.copy.en.label).toBeTruthy();
-      expect(chore.copy.es.label).toBeTruthy();
-      expect(chore.copy.en.sub).toBeTruthy();
-      expect(chore.copy.es.sub).toBeTruthy();
+      for (const locale of ["en", "es", "pt"] as const) {
+        expect(chore.copy[locale].label).toBeTruthy();
+        expect(chore.copy[locale].sub).toBeTruthy();
+      }
     }
   });
 });

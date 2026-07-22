@@ -9,7 +9,7 @@ import {
 } from "../../lib/landingMessages";
 import { useLanguage } from "../../lib/i18n";
 import { LanguageSelect } from "../LanguageSelect";
-import { LinaAvatar } from "../LinaAvatar";
+import { AnnaAvatar } from "../AnnaAvatar";
 
 /**
  * PerkOS-MiniPay browser marketing landing (shown only in a regular browser,
@@ -72,7 +72,7 @@ export function MiniPayLanding({
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/10 bg-[var(--background)]/90 px-5 py-3 backdrop-blur">
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          aria-label="Top"
+          aria-label={locale === "es" ? "Inicio de Anna" : locale === "pt" ? "Início de Anna" : "Anna home"}
           className="active:opacity-80"
         >
           <Brand />
@@ -82,7 +82,7 @@ export function MiniPayLanding({
 
       {/* Hero */}
       <section className="flex flex-col items-center gap-3 px-5 pb-10 pt-9 text-center">
-        <LinaAvatar size="hero" state="welcome" className="mb-1 shadow-[0_18px_60px_rgba(23,61,50,0.45)]" />
+        <AnnaAvatar size="hero" state="welcome" className="mb-1 shadow-[0_18px_60px_rgba(23,61,50,0.45)]" />
         <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-[var(--muted)]">
           {t.eyebrow}
         </span>
@@ -248,16 +248,22 @@ function PreviewCard({ locale }: { locale: Locale }) {
   const lines =
     locale === "es"
       ? ["Registré: 3 ventas hoy", "Ganancia de la semana: $84", "Recordatorio enviado a 2 clientes"]
+      : locale === "pt"
+        ? ["Registrei: 3 vendas hoje", "Lucro da semana: $84", "Lembrete enviado a 2 clientes"]
       : ["Logged: 3 sales today", "This week's profit: $84", "Reminder sent to 2 customers"];
   return (
     <div className="mt-6 w-full rounded-3xl border border-white/10 bg-white/5 p-3">
       <div className="flex flex-col gap-2 rounded-2xl bg-[var(--background)] p-3 text-left">
         <div className="mb-1 flex items-center gap-2 border-b border-white/5 pb-2">
-          <LinaAvatar size="sm" state="recommending" decorative />
+          <AnnaAvatar size="sm" state="recommending" decorative />
           <div>
-            <p className="text-xs font-semibold">Lina</p>
+            <p className="text-xs font-semibold">Anna</p>
             <p className="text-[10px] text-[var(--muted)]">
-              {locale === "es" ? "Esto es lo que avanzamos hoy" : "Here is what we moved forward today"}
+              {locale === "es"
+                ? "Esto es lo que avanzamos hoy"
+                : locale === "pt"
+                  ? "Veja o que avançamos hoje"
+                  : "Here is what we moved forward today"}
             </p>
           </div>
         </div>
@@ -266,7 +272,7 @@ function PreviewCard({ locale }: { locale: Locale }) {
             <span className="text-xs text-foreground/90">{l}</span>
             {i === 0 && (
               <span className="shrink-0 rounded-full bg-[var(--accent)]/15 px-2 py-0.5 text-[10px] text-[var(--accent)]">
-                {locale === "es" ? "1 crédito" : "1 credit"}
+                {locale === "es" || locale === "pt" ? "1 crédito" : "1 credit"}
               </span>
             )}
           </div>
