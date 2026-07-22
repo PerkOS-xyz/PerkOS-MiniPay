@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { useReadContract } from "wagmi";
 import { celo } from "wagmi/chains";
 import { formatUnits } from "viem";
@@ -8,11 +8,17 @@ import { CUSD, USDC, USDT, type TokenInfo } from "../lib/tokenAddresses";
 import { selectPaymentToken } from "../lib/selectPaymentToken";
 import { translated, useLanguage } from "../lib/i18n";
 import { usePayCusd } from "../lib/usePayCusd";
+import { useBrowserChain } from "../lib/browserChainContext";
+import { DynamicWalletContext } from "../lib/dynamicWallet";
+import { browserPaymentRail, BROWSER_PAYMENT_RAILS } from "../lib/paymentRails";
+import { signX402Payment } from "../lib/x402Payment";
 import {
   getBillingMe,
   getPacks,
   depositCelo,
   buyMembership,
+  buyBrowserMembership,
+  depositBrowserStablecoin,
   type BillingMe,
   type CreditPacks,
 } from "../lib/perkosApi";
@@ -37,6 +43,9 @@ export function WalletPanel({ address, compact = false }: { address: string; com
   const tr = (en: string, es: string, pt: string = en) => translated(locale, en, es, pt);
   const account = address as `0x${string}`;
   const { pay, ready } = usePayCusd();
+  const browserChain = useBrowserChain();
+  const dynamicWallet = useContext(DynamicWalletContext);
+  const paymentRail = browserPaymentRail(browserChain?.chainId ?? celo.id);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [billing, setBilling] = useState<BillingMe | null>(null);
@@ -63,13 +72,16 @@ export function WalletPanel({ address, compact = false }: { address: string; com
 
   // MiniPay holds funds in USDT by default (not cUSD), so read all three
   // stablecoins and show the total — the real spendable "Dollars" balance.
-  function useBal(token: TokenInfo) {
+  function useBal(
+    token: Pick<TokenInfo, "address" | "symbol" | "decimals">,
+    chainId: 42220 | 8453 | 4663 = celo.id,
+  ) {
     const { data, refetch } = useReadContract({
       address: token.address,
       abi: ERC20_BALANCE_ABI,
       functionName: "balanceOf",
       args: [account],
-      chainId: celo.id,
+      chainId,
       query: { enabled: Boolean(address) },
     });
     const value = data !== undefined ? Number(formatUnits(data as bigint, token.decimals)) : undefined;
@@ -78,20 +90,32 @@ export function WalletPanel({ address, compact = false }: { address: string; com
   const cusdBal = useBal(CUSD);
   const usdtBal = useBal(USDT);
   const usdcBal = useBal(USDC);
+  const baseUsdcBal = useBal(BROWSER_PAYMENT_RAILS.base.token, BROWSER_PAYMENT_RAILS.base.chainId);
+  const robinhoodUsdgBal = useBal(BROWSER_PAYMENT_RAILS.robinhood.token, BROWSER_PAYMENT_RAILS.robinhood.chainId);
   const refetch = () => {
     cusdBal.refetch();
     usdtBal.refetch();
     usdcBal.refetch();
+    baseUsdcBal.refetch();
+    robinhoodUsdgBal.refetch();
   };
-  const ready3 =
+  const celoBalancesReady =
     cusdBal.value !== undefined || usdtBal.value !== undefined || usdcBal.value !== undefined;
-  const walletUsd = (cusdBal.value ?? 0) + (usdtBal.value ?? 0) + (usdcBal.value ?? 0);
-  const canTopUp = ready && ready3 && Boolean(PAYMENT_ADDRESS);
-  const topUpHint = !PAYMENT_ADDRESS
+  const selectedBrowserBalance = paymentRail?.network === "base" ? baseUsdcBal.value : robinhoodUsdgBal.value;
+  const balancesReady = paymentRail ? selectedBrowserBalance !== undefined : celoBalancesReady;
+  const walletUsd = paymentRail
+    ? selectedBrowserBalance ?? 0
+    : (cusdBal.value ?? 0) + (usdtBal.value ?? 0) + (usdcBal.value ?? 0);
+  const canTopUp = paymentRail
+    ? Boolean(dynamicWallet?.isConnected) && balancesReady
+    : ready && balancesReady && Boolean(PAYMENT_ADDRESS);
+  const topUpHint = !paymentRail && !PAYMENT_ADDRESS
     ? tr("Top-ups are not configured yet.", "Las recargas todavía no están configuradas.", "As recargas ainda não estão configuradas.")
-    : !ready3
+    : !balancesReady
       ? tr("Checking your stablecoin balance…", "Consultando tu balance de stablecoins…", "Consultando seu saldo de stablecoins…")
-      : !ready
+      : paymentRail && !dynamicWallet?.isConnected
+        ? tr("Reconnect your wallet to buy credits.", "Reconecta tu wallet para comprar créditos.", "Reconecte sua carteira para comprar créditos.")
+      : !paymentRail && !ready
         ? tr("Reconnect your wallet to buy credits.", "Reconecta tu wallet para comprar créditos.", "Reconecte sua carteira para comprar créditos.")
         : null;
 
@@ -105,24 +129,76 @@ export function WalletPanel({ address, compact = false }: { address: string; com
     ]);
   }
 
+  async function payWithBrowserRail(input: {
+    amount: number;
+    tier?: "basic" | "pro";
+  }) {
+    if (!paymentRail || !browserChain || !dynamicWallet?.isConnected) {
+      throw new Error(tr("Browser wallet is not ready.", "La wallet del navegador no está lista.", "A carteira do navegador não está pronta."));
+    }
+    await browserChain.switchChain(paymentRail.chainId);
+    let walletClient = await dynamicWallet.getWalletClient();
+    if (walletClient.chain?.id !== paymentRail.chainId) {
+      await walletClient.switchChain({ id: paymentRail.chainId });
+      walletClient = await dynamicWallet.getWalletClient();
+    }
+    const request = (xPayment?: string) => input.tier
+      ? buyBrowserMembership(paymentRail.network, input.tier, xPayment)
+      : depositBrowserStablecoin(paymentRail.network, input.amount, xPayment);
+    const challenge = await request();
+    if (challenge.status !== 402) {
+      const detail = typeof challenge.body.error === "string"
+        ? challenge.body.error
+        : challenge.body.error?.message || challenge.body.message;
+      throw new Error(detail || `Payment challenge failed (${challenge.status})`);
+    }
+    const requirements = challenge.body.accepts?.find((candidate) => candidate.network === paymentRail.network);
+    if (!requirements) throw new Error(`${paymentRail.chainLabel} payment is not available.`);
+    const xPayment = await signX402Payment({
+      walletClient,
+      requirements,
+      payer: account,
+      chainId: paymentRail.chainId,
+    });
+    const settled = await request(xPayment);
+    if (!settled.ok) {
+      const detail = typeof settled.body.error === "string"
+        ? settled.body.error
+        : settled.body.error?.message || settled.body.message;
+      throw new Error(detail || `Payment settlement failed (${settled.status})`);
+    }
+    return settled.body;
+  }
+
   async function buyPack(pack: { usd: number; credits: number }) {
     setMsg(null);
     setTxHash(null);
     setPendingPayment(null);
-    if (!PAYMENT_ADDRESS) {
+    if (!paymentRail && !PAYMENT_ADDRESS) {
       setMsg(tr("Top-ups aren't configured yet.", "Las recargas todavía no están configuradas.", "As recargas ainda não estão configuradas."));
       return;
     }
-    const token = payTokenFor(pack.usd);
-    if (!token) {
-      setMsg(tr(`You need at least $${pack.usd} in USDT, cUSD or USDC to buy this pack.`, `Necesitas al menos $${pack.usd} en USDT, cUSD o USDC para comprar este paquete.`, `Você precisa de pelo menos $${pack.usd} em USDT, cUSD ou USDC para comprar este pacote.`));
+    const token = paymentRail ? paymentRail.token : payTokenFor(pack.usd);
+    if (!token || (paymentRail && (selectedBrowserBalance ?? 0) < pack.usd)) {
+      const assets = paymentRail ? paymentRail.token.symbol : "USDT, cUSD or USDC";
+      setMsg(tr(`You need at least $${pack.usd} in ${assets} to buy this pack.`, `Necesitas al menos $${pack.usd} en ${assets} para comprar este paquete.`, `Você precisa de pelo menos $${pack.usd} em ${assets} para comprar este pacote.`));
       return;
     }
     setBusy(true);
     try {
       setPaymentStage("wallet");
       setMsg(tr(`Paying ${pack.usd} ${token.symbol}…`, `Esperando el pago de ${pack.usd} ${token.symbol}…`, `Aguardando o pagamento de ${pack.usd} ${token.symbol}…`));
-      const hash = await pay(PAYMENT_ADDRESS, String(pack.usd), token);
+      if (paymentRail) {
+        const result = await payWithBrowserRail({ amount: pack.usd });
+        const hash = result.txHash as `0x${string}` | undefined;
+        if (hash) setTxHash(hash);
+        setMsg(tr(`Added ${result.added ?? pack.credits} credits`, `Se agregaron ${result.added ?? pack.credits} créditos`, `${result.added ?? pack.credits} créditos adicionados`));
+        setPaymentStage("done");
+        refreshBilling();
+        setTimeout(() => refetch(), 2000);
+        return;
+      }
+      const hash = await pay(PAYMENT_ADDRESS, String(pack.usd), token as TokenInfo);
       setTxHash(hash);
       setPaymentStage("chain");
       setMsg(tr("Confirming payment on Celo…", "Confirmando el pago en Celo…", "Confirmando o pagamento na Celo…"));
@@ -157,20 +233,31 @@ export function WalletPanel({ address, compact = false }: { address: string; com
     setMsg(null);
     setTxHash(null);
     setPendingPayment(null);
-    if (!PAYMENT_ADDRESS) {
+    if (!paymentRail && !PAYMENT_ADDRESS) {
       setMsg(tr("Membership isn't configured yet.", "La membresía todavía no está configurada.", "A assinatura ainda não está configurada."));
       return;
     }
-    const token = payTokenFor(usd);
-    if (!token) {
-      setMsg(tr(`You need at least $${usd} in USDT, cUSD or USDC to go ${key}.`, `Necesitas al menos $${usd} en USDT, cUSD o USDC para cambiar al plan ${key}.`, `Você precisa de pelo menos $${usd} em USDT, cUSD ou USDC para mudar para o plano ${key}.`));
+    const token = paymentRail ? paymentRail.token : payTokenFor(usd);
+    if (!token || (paymentRail && (selectedBrowserBalance ?? 0) < usd)) {
+      const assets = paymentRail ? paymentRail.token.symbol : "USDT, cUSD or USDC";
+      setMsg(tr(`You need at least $${usd} in ${assets} to go ${key}.`, `Necesitas al menos $${usd} en ${assets} para cambiar al plan ${key}.`, `Você precisa de pelo menos $${usd} em ${assets} para mudar para o plano ${key}.`));
       return;
     }
     setBusy(true);
     try {
       setPaymentStage("wallet");
       setMsg(tr(`Paying ${usd} ${token.symbol}…`, `Esperando el pago de ${usd} ${token.symbol}…`, `Aguardando o pagamento de ${usd} ${token.symbol}…`));
-      const hash = await pay(PAYMENT_ADDRESS, String(usd), token);
+      if (paymentRail) {
+        const result = await payWithBrowserRail({ amount: usd, tier: key });
+        const hash = result.txHash as `0x${string}` | undefined;
+        if (hash) setTxHash(hash);
+        setMsg(tr(`You're on ${key[0].toUpperCase() + key.slice(1)} · +${result.added ?? result.credits ?? 0} credits`, `Plan ${key} activo · +${result.added ?? result.credits ?? 0} créditos`, `Plano ${key} ativo · +${result.added ?? result.credits ?? 0} créditos`));
+        setPaymentStage("done");
+        refreshBilling();
+        setTimeout(() => refetch(), 2000);
+        return;
+      }
+      const hash = await pay(PAYMENT_ADDRESS, String(usd), token as TokenInfo);
       setTxHash(hash);
       setPaymentStage("chain");
       setMsg(tr("Activating membership…", "Activando la membresía…", "Ativando a assinatura…"));
@@ -268,8 +355,10 @@ export function WalletPanel({ address, compact = false }: { address: string; com
         </div>
         <div className="text-right">
           <p className="text-xs text-[var(--muted)]">{tr("In wallet", "En la wallet", "Na carteira")}</p>
-          <p className="text-sm font-medium">{ready3 ? `$${walletUsd.toFixed(2)}` : "—"}</p>
-          {ready3 && (usdtBal.value ?? 0) > 0 && (
+          <p className="text-sm font-medium">{balancesReady ? `$${walletUsd.toFixed(2)}` : "—"}</p>
+          {paymentRail && balancesReady ? (
+            <p className="text-[10px] text-[var(--muted)]">{walletUsd.toFixed(2)} {paymentRail.token.symbol} · {paymentRail.chainLabel}</p>
+          ) : celoBalancesReady && (usdtBal.value ?? 0) > 0 && (
             <p className="text-[10px] text-[var(--muted)]">{(usdtBal.value ?? 0).toFixed(2)} USDT</p>
           )}
         </div>
@@ -289,7 +378,11 @@ export function WalletPanel({ address, compact = false }: { address: string; com
         ))}
       </div>
       {topUpHint && <p className="mt-2 text-xs text-amber-200/80">{topUpHint}</p>}
-      <p className="mt-2 text-xs text-[var(--muted)]">{tr("Credits pay for the work · pay with USDT, cUSD or USDC", "Los créditos pagan el trabajo · usa USDT, cUSD o USDC", "Os créditos pagam pelo trabalho · use USDT, cUSD ou USDC")}</p>
+      <p className="mt-2 text-xs text-[var(--muted)]">
+        {paymentRail
+          ? tr(`Gas sponsored · pay with ${paymentRail.token.symbol} on ${paymentRail.chainLabel}`, `Gas patrocinado · paga con ${paymentRail.token.symbol} en ${paymentRail.chainLabel}`, `Gas patrocinado · pague com ${paymentRail.token.symbol} na ${paymentRail.chainLabel}`)
+          : tr("Credits pay for the work · pay with USDT, cUSD or USDC", "Los créditos pagan el trabajo · usa USDT, cUSD o USDC", "Os créditos pagam pelo trabalho · use USDT, cUSD ou USDC")}
+      </p>
 
       {tierOffers.length > 0 && !showMembership && (
         <button
@@ -361,7 +454,7 @@ export function WalletPanel({ address, compact = false }: { address: string; com
           <div className="mt-1 flex gap-3">
             {txHash && (
               <a
-                href={`https://celoscan.io/tx/${txHash}`}
+                href={`${paymentRail?.explorerUrl ?? "https://celoscan.io"}/tx/${txHash}`}
                 target="_blank"
                 rel="noreferrer"
                 className="underline underline-offset-2"

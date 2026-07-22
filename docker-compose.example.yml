@@ -12,6 +12,8 @@ services:
       args:
         NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://minipay.perkos.xyz}
         NEXT_PUBLIC_CELO_RPC_URL: ${NEXT_PUBLIC_CELO_RPC_URL:-https://forno.celo.org}
+        NEXT_PUBLIC_BASE_RPC_URL: ${NEXT_PUBLIC_BASE_RPC_URL:-https://mainnet.base.org}
+        NEXT_PUBLIC_ROBINHOOD_RPC_URL: ${NEXT_PUBLIC_ROBINHOOD_RPC_URL:-https://rpc.mainnet.chain.robinhood.com}
         NEXT_PUBLIC_PAYMENT_ADDRESS: ${NEXT_PUBLIC_PAYMENT_ADDRESS:-}
         NEXT_PUBLIC_PERKOS_API_URL: ${NEXT_PUBLIC_PERKOS_API_URL:-https://api.perkos.xyz}
         NEXT_PUBLIC_PERKOS_DEFAULT_IMAGE_TAG: ${NEXT_PUBLIC_PERKOS_DEFAULT_IMAGE_TAG:-}
