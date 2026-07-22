@@ -2,7 +2,7 @@
   "name": "perkos-minipay",
   "version": "0.1.0",
   "private": true,
-  "description": "Lina by PerkOS — a practical business companion for MiniPay.",
+  "description": "Anna by PerkOS — a practical business companion for MiniPay.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

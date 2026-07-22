@@ -1,11 +1,13 @@
-# PerkOS-MiniPay
+# Anna by PerkOS
 
-**Money & customer tools for your business — inside your wallet.** A gallery of AI helpers built on **Celo**
-and delivered as a Mini App inside **Opera MiniPay**. Pay only for the work, in **cUSD**.
+**Your practical business companion — inside your wallet.** Anna helps small-business owners track sales,
+prepare invoices, organize follow-ups, and understand what needs attention next. It runs on **Celo** and is
+delivered as a Mini App inside **Opera MiniPay**. Users approve every step and keep control of their money.
 
-This is the Celo/MiniPay surface of [PerkOS](https://app.perkos.xyz). A small-business owner picks a **tool**
-(Merchant Daily, Savings Group, Freelance Invoices, Rent Tracker, …), and it activates instantly on a shared
-fleet of **PerkOS-owned agents** — no deployment, no waiting. The user just chats with their helpers.
+This repository contains the Celo/MiniPay surface of [PerkOS](https://app.perkos.xyz). In the product, Anna
+is the single customer-facing identity. A small-business owner adds a capability such as Merchant Daily,
+Savings Group, Freelance Invoices, or Rent Tracker and then works with Anna through one simple conversation.
+The shared specialist fleet remains an internal implementation detail.
 
 > Full research + the shared-agents design: [`docs/PERKOS-MINIPAY-RESEARCH.md`](docs/PERKOS-MINIPAY-RESEARCH.md).
 

@@ -297,7 +297,7 @@ export function WalletPanel({ address, compact = false }: { address: string; com
           onClick={() => setShowMembership(true)}
           className="mt-3 w-full border-t border-white/10 pt-3 text-left text-xs font-medium text-[var(--accent)]"
         >
-          {tr("Use Lina often? See optional monthly plans ›", "¿Usas Lina con frecuencia? Ver planes mensuales opcionales ›")}
+          {tr("Use Anna often? See optional monthly plans ›", "¿Usas Anna con frecuencia? Ver planes mensuales opcionales ›")}
         </button>
       )}
 

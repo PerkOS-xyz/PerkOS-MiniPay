@@ -76,7 +76,7 @@ export default function Page() {
         <p className="text-sm text-[var(--muted)]">
           {locale === "es"
             ? "Asistentes simples para tu negocio, dentro de tu wallet. Paga solo por el trabajo."
-            : "Lina helps with your business, right inside your wallet. Pay only for the work."}
+            : "Anna helps with your business, right inside your wallet. Pay only for the work."}
         </p>
         <GateAction
           status={status}

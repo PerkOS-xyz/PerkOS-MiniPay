@@ -130,7 +130,7 @@ export function Dashboard({
               {claiming ? (es ? "Reclamando…" : "Claiming…") : es ? `Reclamar ${(billing.rewardTarget ?? 15) - credits} créditos gratis` : `Claim ${(billing.rewardTarget ?? 15) - credits} free credits`}
             </span>
             <span className="block text-xs text-[var(--muted)]">
-              {es ? "Planifica con Lina y recibe créditos gratis cada mes." : "Plan with Lina and receive free credits each month."}
+              {es ? "Planifica con Anna y recibe créditos gratis cada mes." : "Plan with Anna and receive free credits each month."}
             </span>
           </span>
         </button>
@@ -181,7 +181,7 @@ export function Dashboard({
               ? es ? `${queued} en progreso` : `${queued} in progress`
               : done > 0
                 ? es ? `${done} listos` : `${done} done`
-                : tpl?.tagline ?? (es ? "Lista para usar con Lina" : "Ready to use with Lina");
+                : tpl?.tagline ?? (es ? "Lista para usar con Anna" : "Ready to use with Anna");
           return (
             <button
               key={p.id}
@@ -227,7 +227,7 @@ export function Dashboard({
         <SectionHeader label={es ? "Actividad reciente" : "Recent activity"} />
         {activity.length === 0 ? (
           <p className="py-4 text-center text-sm text-[var(--muted)]">
-            {es ? "Todavía no hay actividad. Cuando Lina empiece a trabajar, aparecerá aquí." : "No activity yet. Once Lina starts working, you'll see it here."}
+            {es ? "Todavía no hay actividad. Cuando Anna empiece a trabajar, aparecerá aquí." : "No activity yet. Once Anna starts working, you'll see it here."}
           </p>
         ) : (
           activity.slice(0, 6).map((e) => {
@@ -238,7 +238,7 @@ export function Dashboard({
                   {v.emoji}
                 </span>
                 <span className="min-w-0 flex-1 text-sm">
-                  <span className="font-medium">{e.actor || "Lina"}</span> {v.phrase}{" "}
+                  <span className="font-medium">{e.actor || "Anna"}</span> {v.phrase}{" "}
                   <span className="text-[var(--muted)]">{e.object}</span>
                   {e.detail ? <span className="text-[var(--muted)]"> · {e.detail}</span> : null}
                 </span>

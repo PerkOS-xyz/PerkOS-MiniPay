@@ -69,7 +69,7 @@ export function TeamThread({
   const { locale } = useLanguage();
   const t = locale === "es"
     ? {
-        greeting: "Hola, soy Lina. Dime qué necesitas y te mostraré el costo antes de hacer algo. Tus primeros trabajos de cada mes son gratis.",
+        greeting: "Hola, soy Anna. Dime qué necesitas y te mostraré el costo antes de hacer algo. Tus primeros trabajos de cada mes son gratis.",
         more: "Cuéntame un poco más y te ayudaré.",
         failed: "Lo siento, no pude hacerlo ahora. Inténtalo nuevamente.",
         workingJobs: "Ya empecé. Guardaré los resultados en tus trabajos cuando estén listos.",
@@ -85,7 +85,7 @@ export function TeamThread({
         freeLeft: (n: number) => `${n} gratis este mes`,
         balance: (n: number) => `Tienes ${n} créditos`,
         started: "Iniciado",
-        working: "Lina está trabajando…",
+        working: "Anna está trabajando…",
         preview: "Ya está listo. Aquí tienes un adelanto",
         locked: "Bloqueado",
         unlock: (n: number) => `Desbloquear resultados · ${n} créditos`,
@@ -105,7 +105,7 @@ export function TeamThread({
         workingLabel: "Trabajando",
       }
     : {
-        greeting: "Hi, I'm Lina. Tell me what you need, and I'll show the cost before doing anything. Your first jobs each month are free.",
+        greeting: "Hi, I'm Anna. Tell me what you need, and I'll show the cost before doing anything. Your first jobs each month are free.",
         more: "Tell me a bit more and I'll help.",
         failed: "Sorry, I couldn't do that just now. Please try again.",
         workingJobs: "I'm on it. I'll keep the results in your jobs when they're ready.",
@@ -121,7 +121,7 @@ export function TeamThread({
         freeLeft: (n: number) => `${n} free this month`,
         balance: (n: number) => `You have ${n} credits`,
         started: "Started",
-        working: "Lina is working…",
+        working: "Anna is working…",
         preview: "It's ready. Here's a preview",
         locked: "Locked",
         unlock: (n: number) => `Unlock full results · ${n} credits`,

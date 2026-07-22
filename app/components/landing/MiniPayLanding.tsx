@@ -9,7 +9,7 @@ import {
 } from "../../lib/landingMessages";
 import { useLanguage } from "../../lib/i18n";
 import { LanguageSelect } from "../LanguageSelect";
-import { LinaAvatar } from "../LinaAvatar";
+import { AnnaAvatar } from "../AnnaAvatar";
 
 /**
  * PerkOS-MiniPay browser marketing landing (shown only in a regular browser,
@@ -72,7 +72,7 @@ export function MiniPayLanding({
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/10 bg-[var(--background)]/90 px-5 py-3 backdrop-blur">
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          aria-label="Top"
+          aria-label={locale === "es" ? "Inicio de Anna" : "Anna home"}
           className="active:opacity-80"
         >
           <Brand />
@@ -82,7 +82,7 @@ export function MiniPayLanding({
 
       {/* Hero */}
       <section className="flex flex-col items-center gap-3 px-5 pb-10 pt-9 text-center">
-        <LinaAvatar size="hero" state="welcome" className="mb-1 shadow-[0_18px_60px_rgba(23,61,50,0.45)]" />
+        <AnnaAvatar size="hero" state="welcome" className="mb-1 shadow-[0_18px_60px_rgba(23,61,50,0.45)]" />
         <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-[var(--muted)]">
           {t.eyebrow}
         </span>
@@ -253,9 +253,9 @@ function PreviewCard({ locale }: { locale: Locale }) {
     <div className="mt-6 w-full rounded-3xl border border-white/10 bg-white/5 p-3">
       <div className="flex flex-col gap-2 rounded-2xl bg-[var(--background)] p-3 text-left">
         <div className="mb-1 flex items-center gap-2 border-b border-white/5 pb-2">
-          <LinaAvatar size="sm" state="recommending" decorative />
+          <AnnaAvatar size="sm" state="recommending" decorative />
           <div>
-            <p className="text-xs font-semibold">Lina</p>
+            <p className="text-xs font-semibold">Anna</p>
             <p className="text-[10px] text-[var(--muted)]">
               {locale === "es" ? "Esto es lo que avanzamos hoy" : "Here is what we moved forward today"}
             </p>
