@@ -1,7 +1,7 @@
 "use client";
 
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
-import { useLanguage } from "../lib/i18n";
+import { translated, useLanguage } from "../lib/i18n";
 
 /**
  * Browser-only "Continue with email or wallet" button that opens Dynamic's
@@ -22,12 +22,15 @@ export function DynamicSignInButton() {
         onClick={() => setShowAuthFlow(true)}
         className="rounded-2xl bg-[var(--accent)] px-5 py-3 font-medium text-white"
       >
-        {locale === "es" ? "Continuar con email o wallet" : "Continue with email or wallet"}
+        {translated(locale, "Continue with email or wallet", "Continuar con email o wallet", "Continuar com e-mail ou carteira")}
       </button>
       <p className="text-xs leading-relaxed text-foreground/65">
-        {locale === "es"
-          ? "Primero conectas. Después confirmas una firma segura y sin gas para entrar."
-          : "First connect. Then confirm one safe, gas-free signature to sign in."}
+        {translated(
+          locale,
+          "First connect. Then confirm one safe, gas-free signature to sign in.",
+          "Primero conectas. Después confirmas una firma segura y sin gas para entrar.",
+          "Primeiro conecte. Depois confirme uma assinatura segura e sem gás para entrar.",
+        )}
       </p>
     </div>
   );

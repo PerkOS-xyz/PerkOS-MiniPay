@@ -10,6 +10,11 @@ type LanguageContextValue = {
 };
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
+const DOCUMENT_TITLES: Record<Locale, string> = {
+  en: "Anna by PerkOS — Your business companion",
+  es: "Anna by PerkOS — Tu compañera de negocio",
+  pt: "Anna by PerkOS — Sua parceira de negócios",
+};
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("en");
@@ -30,6 +35,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.lang = locale;
+    document.title = DOCUMENT_TITLES[locale];
   }, [locale]);
 
   const value = useMemo(() => ({ locale, setLocale }), [locale, setLocale]);
@@ -40,4 +46,8 @@ export function useLanguage(): LanguageContextValue {
   const value = useContext(LanguageContext);
   if (!value) throw new Error("useLanguage must be used inside LanguageProvider");
   return value;
+}
+
+export function translated(locale: Locale, en: string, es: string, pt: string): string {
+  return locale === "es" ? es : locale === "pt" ? pt : en;
 }

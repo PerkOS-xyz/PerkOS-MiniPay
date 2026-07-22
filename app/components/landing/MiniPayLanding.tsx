@@ -72,7 +72,7 @@ export function MiniPayLanding({
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/10 bg-[var(--background)]/90 px-5 py-3 backdrop-blur">
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          aria-label={locale === "es" ? "Inicio de Anna" : "Anna home"}
+          aria-label={locale === "es" ? "Inicio de Anna" : locale === "pt" ? "Início de Anna" : "Anna home"}
           className="active:opacity-80"
         >
           <Brand />
@@ -248,6 +248,8 @@ function PreviewCard({ locale }: { locale: Locale }) {
   const lines =
     locale === "es"
       ? ["Registré: 3 ventas hoy", "Ganancia de la semana: $84", "Recordatorio enviado a 2 clientes"]
+      : locale === "pt"
+        ? ["Registrei: 3 vendas hoje", "Lucro da semana: $84", "Lembrete enviado a 2 clientes"]
       : ["Logged: 3 sales today", "This week's profit: $84", "Reminder sent to 2 customers"];
   return (
     <div className="mt-6 w-full rounded-3xl border border-white/10 bg-white/5 p-3">
@@ -257,7 +259,11 @@ function PreviewCard({ locale }: { locale: Locale }) {
           <div>
             <p className="text-xs font-semibold">Anna</p>
             <p className="text-[10px] text-[var(--muted)]">
-              {locale === "es" ? "Esto es lo que avanzamos hoy" : "Here is what we moved forward today"}
+              {locale === "es"
+                ? "Esto es lo que avanzamos hoy"
+                : locale === "pt"
+                  ? "Veja o que avançamos hoje"
+                  : "Here is what we moved forward today"}
             </p>
           </div>
         </div>
@@ -266,7 +272,7 @@ function PreviewCard({ locale }: { locale: Locale }) {
             <span className="text-xs text-foreground/90">{l}</span>
             {i === 0 && (
               <span className="shrink-0 rounded-full bg-[var(--accent)]/15 px-2 py-0.5 text-[10px] text-[var(--accent)]">
-                {locale === "es" ? "1 crédito" : "1 credit"}
+                {locale === "es" || locale === "pt" ? "1 crédito" : "1 credit"}
               </span>
             )}
           </div>

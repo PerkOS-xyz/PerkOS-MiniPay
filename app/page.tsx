@@ -13,7 +13,7 @@ import { ConnectButton } from "./components/ConnectButton";
 import { AccessGate } from "./components/AccessGate";
 import { MiniPayLanding } from "./components/landing/MiniPayLanding";
 import { LanguageSelect } from "./components/LanguageSelect";
-import { useLanguage } from "./lib/i18n";
+import { translated, useLanguage } from "./lib/i18n";
 
 // Lazy — pulls @dynamic-labs only in the browser host (the chunk is shared
 // with DynamicProviders, which is mounted under the same condition).
@@ -71,12 +71,15 @@ export default function Page() {
         <div className="absolute right-5 top-5"><LanguageSelect compact /></div>
         <Brand className="mb-2 justify-center" />
         <h1 className="text-2xl font-semibold">
-          {locale === "es" ? "Herramientas para dinero y clientes" : "Money & customer tools"}
+          {translated(locale, "Money & customer tools", "Herramientas para dinero y clientes", "Ferramentas para dinheiro e clientes")}
         </h1>
         <p className="text-sm text-[var(--muted)]">
-          {locale === "es"
-            ? "Asistentes simples para tu negocio, dentro de tu wallet. Paga solo por el trabajo."
-            : "Anna helps with your business, right inside your wallet. Pay only for the work."}
+          {translated(
+            locale,
+            "Anna helps with your business, right inside your wallet. Pay only for the work.",
+            "Anna te ayuda con tu negocio, dentro de tu wallet. Paga solo por el trabajo.",
+            "Anna ajuda com seu negócio dentro da sua carteira. Pague apenas pelo trabalho.",
+          )}
         </p>
         <GateAction
           status={status}
@@ -106,7 +109,7 @@ function GateAction({
   address?: string;
 }) {
   const { locale } = useLanguage();
-  const es = locale === "es";
+  const tr = (en: string, es: string, pt: string) => translated(locale, en, es, pt);
   const note = (text: string, danger = false) => (
     <p className={`mt-2 max-w-xs text-xs ${danger ? "text-red-300" : "text-[var(--muted)]"}`}>{text}</p>
   );
@@ -118,28 +121,32 @@ function GateAction({
     return address ? (
       <AccessGate address={address} />
     ) : (
-      note(es ? "Esta wallet todavía no está en la lista de acceso." : "This wallet isn't on the access list yet.")
+      note(tr("This wallet isn't on the access list yet.", "Esta wallet todavía no está en la lista de acceso.", "Esta carteira ainda não está na lista de acesso."))
     );
   }
-  if (status === "error") return note(`${es ? "El inicio de sesión falló" : "Sign-in failed"}: ${error ?? (es ? "error desconocido" : "unknown error")}`, true);
+  if (status === "error") return note(`${tr("Sign-in failed", "El inicio de sesión falló", "Falha ao entrar")}: ${error ?? tr("unknown error", "error desconocido", "erro desconhecido")}`, true);
   if (isConnected || status === "syncing") {
     return (
       <div className="mt-3 w-full max-w-xs rounded-2xl border border-white/10 bg-white/5 p-4 text-left">
         <p className="text-sm font-medium">
-          {es ? "Wallet conectada" : "Wallet connected"}
+          {tr("Wallet connected", "Wallet conectada", "Carteira conectada")}
         </p>
         <div className="mt-3 flex items-start gap-3">
           <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[var(--accent)]/20 text-xs text-[var(--accent)]">2</span>
           <div>
-            <p className="text-sm font-medium">{es ? "Confirma que eres tú" : "Confirm it's you"}</p>
+            <p className="text-sm font-medium">{tr("Confirm it's you", "Confirma que eres tú", "Confirme que é você")}</p>
             <p className="mt-0.5 text-xs leading-relaxed text-foreground/65">
               {isMiniPayHost
-                ? es
-                  ? "Aprueba la firma sin gas en MiniPay. No mueve dinero."
-                  : "Approve the gas-free signature in MiniPay. It does not move money."
-                : es
-                  ? "Aprueba la firma sin gas en tu wallet para entrar. No mueve dinero."
-                  : "Approve the gas-free signature in your wallet to sign in. It does not move money."}
+                ? tr(
+                    "Approve the gas-free signature in MiniPay. It does not move money.",
+                    "Aprueba la firma sin gas en MiniPay. No mueve dinero.",
+                    "Aprove a assinatura sem gás no MiniPay. Ela não movimenta dinheiro.",
+                  )
+                : tr(
+                    "Approve the gas-free signature in your wallet to sign in. It does not move money.",
+                    "Aprueba la firma sin gas en tu wallet para entrar. No mueve dinero.",
+                    "Aprove a assinatura sem gás na sua carteira para entrar. Ela não movimenta dinheiro.",
+                  )}
             </p>
           </div>
         </div>
@@ -149,14 +156,14 @@ function GateAction({
   if (isMiniPayHost) {
     return <MiniPayConnectStatus />;
   }
-  if (isMiniPayHost === null) return note(es ? "Cargando…" : "Loading…");
+  if (isMiniPayHost === null) return note(tr("Loading…", "Cargando…", "Carregando…"));
 
   return <BrowserGate />;
 }
 
 function MiniPayConnectStatus() {
   const { locale } = useLanguage();
-  const es = locale === "es";
+  const tr = (en: string, es: string, pt: string) => translated(locale, en, es, pt);
   const [isSlow, setIsSlow] = useState(false);
 
   useEffect(() => {
@@ -168,9 +175,11 @@ function MiniPayConnectStatus() {
     <div className="mt-3 flex max-w-xs flex-col items-center gap-3">
       <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-[var(--accent)]" aria-hidden />
       <p className="text-xs leading-relaxed text-foreground/65">
-        {es
-          ? "Conectando automáticamente la wallet de MiniPay…"
-          : "Connecting your MiniPay wallet automatically…"}
+        {tr(
+          "Connecting your MiniPay wallet automatically…",
+          "Conectando automáticamente la wallet de MiniPay…",
+          "Conectando automaticamente sua carteira MiniPay…",
+        )}
       </p>
       {isSlow ? (
         <button
@@ -178,7 +187,7 @@ function MiniPayConnectStatus() {
           onClick={() => window.location.reload()}
           className="rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium hover:bg-white/15"
         >
-          {es ? "Reintentar" : "Try again"}
+          {tr("Try again", "Reintentar", "Tentar novamente")}
         </button>
       ) : null}
     </div>

@@ -110,10 +110,12 @@ flowchart TB
 |------|----------------|
 | Implicit connection — no "Connect Wallet" button in MiniPay | [`app/components/AutoConnect.tsx`](app/components/AutoConnect.tsx) |
 | Detect MiniPay via `window.ethereum.isMiniPay` | [`app/lib/useIsMiniPay.ts`](app/lib/useIsMiniPay.ts) |
-| Celo-only chains + injected connector | [`app/lib/wagmi.ts`](app/lib/wagmi.ts) |
+| MiniPay fixed to Celo; browser supports Celo, Base, and Robinhood Chain | [`app/lib/wagmi.ts`](app/lib/wagmi.ts), [`app/lib/browserChains.ts`](app/lib/browserChains.ts) |
 | Stablecoins + decimals (cUSD=18, USDC/USDT=6) | [`app/lib/tokenAddresses.ts`](app/lib/tokenAddresses.ts) |
 | Gas in cUSD (`feeCurrency`) + legacy tx only | [`app/lib/celo.ts`](app/lib/celo.ts) |
 | Browser wallet via Dynamic (bridgeless, wagmi v3) | [`app/components/DynamicProviders.tsx`](app/components/DynamicProviders.tsx) |
+| Browser-only chain selector; hidden inside MiniPay | [`app/components/BrowserChainSelect.tsx`](app/components/BrowserChainSelect.tsx) |
+| Browser language detection + EN/ES/PT selector | [`app/lib/landingMessages.ts`](app/lib/landingMessages.ts), [`app/components/LanguageSelect.tsx`](app/components/LanguageSelect.tsx) |
 | Real-time chat over PerkOS-Chat (WS) | [`app/lib/chatClient.ts`](app/lib/chatClient.ts), [`app/lib/useChatConversation.ts`](app/lib/useChatConversation.ts) |
 | Template catalog (15 basics × 20 templates) | [`app/lib/templateCatalog.ts`](app/lib/templateCatalog.ts) |
 

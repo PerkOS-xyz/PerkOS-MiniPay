@@ -35,6 +35,19 @@ export function NeedToday({
         starting: "Iniciando…",
         error: "No se pudo iniciar. Inténtalo nuevamente.",
       }
+      : locale === "pt"
+        ? {
+          title: "Olá, eu sou Anna",
+          subtitle: "O que você precisa resolver hoje? Escolha uma opção ou conte com suas próprias palavras.",
+          placeholder: "Exemplo: quanto ganhei esta semana?",
+          stop: "Parar de ouvir",
+          speak: "Falar",
+          listening: "Ouvindo…",
+          hint: "Falar é mais fácil que escrever. Toque em Falar.",
+          go: "Continuar",
+          starting: "Iniciando…",
+          error: "Não foi possível iniciar. Tente novamente.",
+        }
       : {
         title: "Hi, I'm Anna",
         subtitle: "What do you need done today? Pick one, or tell me in your own words.",

@@ -49,6 +49,15 @@ export function Home({ address }: { address: string }) {
         addHelperSub: "Dale a Anna más formas de ayudarte con dinero y clientes. Solo pagas por el trabajo.",
         back: "‹ Volver con Anna",
       }
+    : locale === "pt"
+      ? {
+        loading: "Carregando…",
+        teamWallet: "Carteira do negócio",
+        logout: "Sair",
+        addHelper: "Adicionar uma habilidade",
+        addHelperSub: "Dê à Anna mais formas de ajudar com dinheiro e clientes. Você paga apenas pelo trabalho.",
+        back: "‹ Voltar para Anna",
+      }
     : {
         loading: "Loading…",
         teamWallet: "Business wallet",
@@ -258,7 +267,9 @@ function ProjectView({
   const { locale } = useLanguage();
   const teamLabel = locale === "es"
     ? "Anna está lista para ayudarte"
-    : "Anna is ready to help";
+    : locale === "pt"
+      ? "Anna está pronta para ajudar"
+      : "Anna is ready to help";
   return (
     <main className="flex h-[100dvh] flex-col px-5 pb-3 pt-4">
       <header className="flex items-center gap-3">

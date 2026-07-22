@@ -25,6 +25,11 @@ export const STARTER_CHORES: StarterChore[] = [
         sub: "Anota las ventas y calcula lo ganado",
         goal: "Ayúdame a registrar las ventas de hoy y calcular cuánto gané.",
       },
+      pt: {
+        label: "Registrar as vendas de hoje",
+        sub: "Anote as vendas e calcule quanto ganhou",
+        goal: "Ajude-me a registrar as vendas de hoje e calcular quanto ganhei.",
+      },
     },
   },
   {
@@ -42,6 +47,11 @@ export const STARTER_CHORES: StarterChore[] = [
         sub: "Prepara una factura o recordatorio de pago",
         goal: "Ayúdame a crear una factura o dar seguimiento a una que no han pagado.",
       },
+      pt: {
+        label: "Criar ou cobrar uma fatura",
+        sub: "Prepare uma fatura ou lembrete de pagamento",
+        goal: "Ajude-me a criar uma fatura ou acompanhar uma que ainda não foi paga.",
+      },
     },
   },
   {
@@ -58,6 +68,11 @@ export const STARTER_CHORES: StarterChore[] = [
         label: "Actualizar mi grupo de ahorro",
         sub: "Registra aportes y quién todavía debe",
         goal: "Ayúdame a actualizar los aportes de mi grupo de ahorro e identificar quién todavía debe.",
+      },
+      pt: {
+        label: "Atualizar meu grupo de poupança",
+        sub: "Registre contribuições e quem ainda deve",
+        goal: "Ajude-me a atualizar as contribuições do meu grupo de poupança e identificar quem ainda deve.",
       },
     },
   },
