@@ -100,7 +100,9 @@ flowchart TB
 | **PerkOS-Containers** | `ghcr.io/perkos-xyz` | The Hermes runtime image the fleet runs |
 | **PerkOS-LLM** | `api.llm.perkos.xyz` | Ollama gateway — `qwen2.5:7b` for simple tasks, auto-escalates to `kimi-k2.6:cloud` |
 | **PerkOS-Knowledge** | `knowledge.perkos.xyz` | Knowledge base the agents query (free for the fleet wallet) |
-| **Celo** | mainnet | cUSD payments (gas in cUSD via fee abstraction, legacy tx) |
+| **Celo** | mainnet | MiniPay-native cUSD/USDT/USDC payments (gas in cUSD via fee abstraction, legacy tx) |
+| **Base** | mainnet | Browser credit packs and memberships paid with native USDC through gas-sponsored x402 settlement |
+| **Robinhood Chain** | mainnet | Browser credit packs and memberships paid with canonical USDG through gas-sponsored x402 settlement |
 | **PerkOS-Contracts** | Celo | `InteractionRegistry` for on-chain usage records (planned) |
 | **Dynamic.xyz** | browser only | Wallet login in a regular browser (bridgeless; same env as PerkOS App) |
 
@@ -115,6 +117,7 @@ flowchart TB
 | Gas in cUSD (`feeCurrency`) + legacy tx only | [`app/lib/celo.ts`](app/lib/celo.ts) |
 | Browser wallet via Dynamic (bridgeless, wagmi v3) | [`app/components/DynamicProviders.tsx`](app/components/DynamicProviders.tsx) |
 | Browser-only chain selector; hidden inside MiniPay | [`app/components/BrowserChainSelect.tsx`](app/components/BrowserChainSelect.tsx) |
+| Browser payments: Base USDC + Robinhood USDG via signed EIP-3009/x402 authorizations | [`app/lib/paymentRails.ts`](app/lib/paymentRails.ts), [`app/lib/x402Payment.ts`](app/lib/x402Payment.ts) |
 | Browser language detection + EN/ES/PT selector | [`app/lib/landingMessages.ts`](app/lib/landingMessages.ts), [`app/components/LanguageSelect.tsx`](app/components/LanguageSelect.tsx) |
 | Real-time chat over PerkOS-Chat (WS) | [`app/lib/chatClient.ts`](app/lib/chatClient.ts), [`app/lib/useChatConversation.ts`](app/lib/useChatConversation.ts) |
 | Template catalog (15 basics × 20 templates) | [`app/lib/templateCatalog.ts`](app/lib/templateCatalog.ts) |

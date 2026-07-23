@@ -521,6 +521,57 @@ export async function depositCelo(
   });
 }
 
+export type X402PaymentResponse = {
+  status: number;
+  ok: boolean;
+  body: {
+    accepts?: import("./x402Payment").PaymentRequirements[];
+    error?: string | { message?: string };
+    message?: string;
+    credits?: number;
+    added?: number;
+    amountUsd?: number;
+    token?: string;
+    network?: string;
+    txHash?: string;
+    tier?: string;
+    membershipUntil?: string;
+  };
+};
+
+async function browserPaymentRequest(
+  path: string,
+  body: Record<string, unknown>,
+  xPayment?: string,
+): Promise<X402PaymentResponse> {
+  const res = await authedFetch(path, {
+    method: "POST",
+    headers: xPayment ? { "X-PAYMENT": xPayment } : undefined,
+    body: JSON.stringify(body),
+  });
+  return {
+    status: res.status,
+    ok: res.ok,
+    body: (await res.json().catch(() => ({}))) as X402PaymentResponse["body"],
+  };
+}
+
+export function depositBrowserStablecoin(
+  network: "base" | "robinhood",
+  amount: number,
+  xPayment?: string,
+) {
+  return browserPaymentRequest("/minipay/billing/deposit", { network, amount }, xPayment);
+}
+
+export function buyBrowserMembership(
+  network: "base" | "robinhood",
+  tier: "basic" | "pro",
+  xPayment?: string,
+) {
+  return browserPaymentRequest("/minipay/billing/membership", { network, tier }, xPayment);
+}
+
 // ─── Per-agent chat ───────────────────────────────────────────────────────────
 
 export type ChatMessage = {
