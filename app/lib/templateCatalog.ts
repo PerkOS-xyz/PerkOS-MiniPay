@@ -17,18 +17,18 @@ import type { SoulFields } from "./souls";
 import { BASIC_AGENTS, TEMPLATE_CATALOG } from "./templateCatalogData";
 
 export type TemplateCategory =
-  | "remittances"
-  | "savings-groups"
-  | "merchant"
-  | "everyday"
-  | "informal-finance";
+  | "writing"
+  | "customers"
+  | "marketing"
+  | "office"
+  | "business";
 
 export const CATEGORY_LABELS: Record<TemplateCategory, string> = {
-  remittances: "Remittances & family",
-  "savings-groups": "Savings & groups",
-  merchant: "My business",
-  everyday: "Everyday money",
-  "informal-finance": "Lending & rent",
+  writing: "Writing",
+  customers: "Customer care",
+  marketing: "Posts & promotions",
+  office: "Daily office work",
+  business: "For your business",
 };
 
 /** Per-task price band (NOT a subscription tier — pay-as-you-go stays). */

@@ -43,4 +43,25 @@ describe("template catalog (15 basics composed by templates)", () => {
       expect(["basic", "pro"]).toContain(t.pricingBand);
     }
   });
+
+  it("publishes only everyday communication profiles, not collection or finance products", () => {
+    expect(TEMPLATE_CATALOG).toHaveLength(8);
+    expect(TEMPLATE_CATALOG.some((template) => template.basicIds.includes("assistant"))).toBe(true);
+    const publicCopy = TEMPLATE_CATALOG
+      .map((template) => `${template.id} ${template.name} ${template.tagline}`)
+      .join(" ")
+      .toLowerCase();
+    for (const forbidden of [
+      "debt",
+      "loan",
+      "lending",
+      "rent collector",
+      "yield",
+      "remittance",
+      "chase",
+      "who owes",
+    ]) {
+      expect(publicCopy).not.toContain(forbidden);
+    }
+  });
 });

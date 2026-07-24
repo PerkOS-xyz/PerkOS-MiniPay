@@ -1,31 +1,31 @@
 # Anna by PerkOS
 
-**Your practical business companion — inside your wallet.** Anna helps small-business owners track sales,
-prepare invoices, organize follow-ups, and understand what needs attention next. It runs on **Celo** and is
-delivered as a Mini App inside **Opera MiniPay**. Users approve every step and keep control of their money.
+**Everyday business help, inside your wallet.** Anna helps non-technical small-business owners improve
+messages, reply to customers, prepare social posts, translate, summarize, and organize routine work. It runs
+on **Celo** and is delivered as a Mini App inside **Opera MiniPay**.
 
 This repository contains the Celo/MiniPay surface of [PerkOS](https://app.perkos.xyz). In the product, Anna
-is the single customer-facing identity. A small-business owner adds a capability such as Merchant Daily,
-Savings Group, Freelance Invoices, or Rent Tracker and then works with Anna through one simple conversation.
-The shared specialist fleet remains an internal implementation detail.
+is the single customer-facing identity. A user can start with one of six direct actions or choose a work
+profile for a shop, restaurant, service business, social seller, or secretary. The shared specialist fleet
+remains an internal implementation detail.
 
 > Full research + the shared-agents design: [`docs/PERKOS-MINIPAY-RESEARCH.md`](docs/PERKOS-MINIPAY-RESEARCH.md).
 
-## How it works — 15 basics composed by 20 templates
+## How it works — simple actions and work profiles
 
-MiniPay does **not** make each user deploy agents. PerkOS runs a small fleet of **15 reusable "basic" agents**
-(Bookkeeper, Debt-Tracker, Reminder-Writer, Invoice-Maker, Group-Ledger, Rotation-Coordinator,
-Payment-Scheduler, Remittance-Tracker, Summary-Reporter, Expense-Splitter, Goal-Coach, Money-Explainer,
-Customer-Replies, Assistant, Topup-Tracker). Each **template** is a curated composition of a few basics:
+The Home screen starts with six direct actions that need no prompt-writing knowledge:
 
-- **Merchant Daily** = Bookkeeper + Customer-Replies + Summary-Reporter
-- **Freelance Invoices** = Invoice-Maker + Reminder-Writer
-- **Savings Group (Ajo/ROSCA)** = Rotation-Coordinator + Group-Ledger
-- **Rent Tracker** = Payment-Scheduler + Reminder-Writer
+- Fix this text
+- Reply to a customer
+- Create a post
+- Change the tone
+- Translate naturally
+- Summarize notes
 
-Activating a template creates the user's project pointing at those shared basics (instant). Cost is amortized
-across all users; the fleet is nearly free at idle. All agents are **non-custodial** — they track, remind,
-draft, and prepare; the owner makes every payment themselves in MiniPay.
+Eight optional profiles cover everyday writing, customer messages, social posts, secretary work, shops,
+restaurants, service businesses, and social sellers. The public catalog deliberately excludes debt
+collection, loans, rent collection, yield, and money-movement templates. Existing legacy projects continue
+to work, but retired profiles cannot be newly discovered or activated.
 
 ## Architecture — the PerkOS components MiniPay talks to
 
@@ -91,7 +91,7 @@ flowchart TB
 
 | PerkOS component | URL / where | MiniPay uses it for |
 |---|---|---|
-| **PerkOS-API** | `api.perkos.xyz` | Wallet sign-in, `GET /templates`, `POST /templates/activate`, fleet launch |
+| **PerkOS-API** | `api.perkos.xyz` | Wallet sign-in, quick writing actions, profile discovery/activation, fleet launch |
 | **Firebase / Firestore** | project `perkos-app` | Auth (custom token), projects, activations, conversation metadata |
 | **PerkOS-Chat** | `wss://chat.perkos.xyz` | Real-time chat — user ↔ agent messages stream here (never stored in Firestore) |
 | **PerkOS Transport** | `transport.perkos.xyz` | A2A relay hub the agent bridges connect to |
@@ -120,7 +120,7 @@ flowchart TB
 | Browser payments: Base USDC + Robinhood USDG via signed EIP-3009/x402 authorizations | [`app/lib/paymentRails.ts`](app/lib/paymentRails.ts), [`app/lib/x402Payment.ts`](app/lib/x402Payment.ts) |
 | Browser language detection + EN/ES/PT selector | [`app/lib/landingMessages.ts`](app/lib/landingMessages.ts), [`app/components/LanguageSelect.tsx`](app/components/LanguageSelect.tsx) |
 | Real-time chat over PerkOS-Chat (WS) | [`app/lib/chatClient.ts`](app/lib/chatClient.ts), [`app/lib/useChatConversation.ts`](app/lib/useChatConversation.ts) |
-| Template catalog (15 basics × 20 templates) | [`app/lib/templateCatalog.ts`](app/lib/templateCatalog.ts) |
+| Six direct actions + eight everyday work profiles | [`app/lib/starterChores.ts`](app/lib/starterChores.ts), [`app/lib/templateCatalogData.ts`](app/lib/templateCatalogData.ts) |
 
 ## Tech stack
 
@@ -134,6 +134,9 @@ npm run dev          # http://localhost:3000
 npm run typecheck
 npm run build
 ```
+
+The development-only `/e2e` route renders the direct-action interface with a deterministic local result.
+It supports browser UI testing without a wallet or paid LLM call and returns 404 in production builds.
 
 ### Test inside MiniPay
 

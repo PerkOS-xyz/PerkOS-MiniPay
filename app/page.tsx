@@ -71,14 +71,14 @@ export default function Page() {
         <div className="absolute right-5 top-5"><LanguageSelect compact /></div>
         <Brand className="mb-2 justify-center" />
         <h1 className="text-2xl font-semibold">
-          {translated(locale, "Money & customer tools", "Herramientas para dinero y clientes", "Ferramentas para dinheiro e clientes")}
+          {translated(locale, "Everyday business help", "Ayuda para el trabajo diario", "Ajuda para o trabalho diário")}
         </h1>
         <p className="text-sm text-[var(--muted)]">
           {translated(
             locale,
-            "Anna helps with your business, right inside your wallet. Pay only for the work.",
-            "Anna te ayuda con tu negocio, dentro de tu wallet. Paga solo por el trabajo.",
-            "Anna ajuda com seu negócio dentro da sua carteira. Pague apenas pelo trabalho.",
+            "Write better messages, reply to customers, and organize your day with Anna.",
+            "Escribe mejores mensajes, responde a clientes y organiza tu día con Anna.",
+            "Escreva mensagens melhores, responda a clientes e organize seu dia com Anna.",
           )}
         </p>
         <GateAction

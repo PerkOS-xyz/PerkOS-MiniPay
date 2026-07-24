@@ -28,6 +28,7 @@ import { ServerWallet } from "./ServerWallet";
 import { LanguageSelect } from "./LanguageSelect";
 import { useLanguage } from "../lib/i18n";
 import { AnnaAvatar } from "./AnnaAvatar";
+import { QuickActions } from "./QuickActions";
 
 type Loaded = {
   agents: Agent[];
@@ -45,8 +46,8 @@ export function Home({ address }: { address: string }) {
         loading: "Cargando…",
         teamWallet: "Wallet del negocio",
         logout: "Cerrar sesión",
-        addHelper: "Agregar una capacidad",
-        addHelperSub: "Dale a Anna más formas de ayudarte con dinero y clientes. Solo pagas por el trabajo.",
+        addHelper: "Ayuda para tu trabajo",
+        addHelperSub: "Elige el tipo de ayuda que más se parece a tu día. No tienes que configurar nada técnico.",
         back: "‹ Volver con Anna",
       }
     : locale === "pt"
@@ -54,16 +55,16 @@ export function Home({ address }: { address: string }) {
         loading: "Carregando…",
         teamWallet: "Carteira do negócio",
         logout: "Sair",
-        addHelper: "Adicionar uma habilidade",
-        addHelperSub: "Dê à Anna mais formas de ajudar com dinheiro e clientes. Você paga apenas pelo trabalho.",
+        addHelper: "Ajuda para o seu trabalho",
+        addHelperSub: "Escolha o tipo de ajuda que mais combina com o seu dia. Você não precisa configurar nada técnico.",
         back: "‹ Voltar para Anna",
       }
     : {
         loading: "Loading…",
         teamWallet: "Business wallet",
         logout: "Log out",
-        addHelper: "Add a skill",
-        addHelperSub: "Give Anna more ways to help with money and customers. You only pay for the work.",
+        addHelper: "Help for your work",
+        addHelperSub: "Choose the kind of help that fits your day. There is nothing technical to configure.",
         back: "‹ Back to Anna",
       };
   // Logout is browser-only: inside MiniPay the wallet is the host identity
@@ -170,16 +171,11 @@ export function Home({ address }: { address: string }) {
     data.projects.map((p) => (p as Project & { templateId?: string }).templateId).filter(Boolean) as string[],
   );
 
-  // --- First run: one question, speak-or-type + a few common chores --------
-  if (data.projects.length === 0) {
+  // --- First run: direct everyday actions; profiles are optional ------------
+  if (data.projects.length === 0 && view === "list") {
     return (
       <NeedToday
-        onStarted={(projectId, goal) => {
-          setInitialGoal(goal ?? null);
-          setView("list");
-          setOpenProjectId(projectId);
-          load();
-        }}
+        onExplore={() => setView("gallery")}
       />
     );
   }
@@ -193,7 +189,6 @@ export function Home({ address }: { address: string }) {
           <h1 className="text-2xl font-semibold">{copy.addHelper}</h1>
           <p className="text-sm text-[var(--muted)]">{copy.addHelperSub}</p>
         </div>
-        <WalletPanel address={address} />
         <TemplateGallery
           activeTemplateIds={activeIds}
           onActivated={(projectId) => {
@@ -232,6 +227,7 @@ export function Home({ address }: { address: string }) {
   return (
     <main className="flex flex-col gap-5 px-5 py-7">
       {header}
+      <QuickActions compact />
       <Dashboard
         address={address}
         projects={data.projects}
