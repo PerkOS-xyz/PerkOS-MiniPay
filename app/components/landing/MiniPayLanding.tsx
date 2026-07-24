@@ -119,7 +119,7 @@ export function MiniPayLanding({
           {t.problem.items.map((x, i) => (
             <li key={i} className="flex items-start gap-3 py-3 text-sm">
               <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white/5">
-                {["💸", "📒", "📊", "🕒"][i]}
+                {["💬", "✍️", "📣", "🗂️"][i]}
               </span>
               <span className="text-foreground/90">{x}</span>
             </li>
@@ -247,10 +247,10 @@ export function MiniPayLanding({
 function PreviewCard({ locale }: { locale: Locale }) {
   const lines =
     locale === "es"
-      ? ["Registré: 3 ventas hoy", "Ganancia de la semana: $84", "Recordatorio enviado a 2 clientes"]
+      ? ["Mensaje corregido y más claro", "Respuesta amable para un cliente", "Publicación corta lista para redes"]
       : locale === "pt"
-        ? ["Registrei: 3 vendas hoje", "Lucro da semana: $84", "Lembrete enviado a 2 clientes"]
-      : ["Logged: 3 sales today", "This week's profit: $84", "Reminder sent to 2 customers"];
+        ? ["Mensagem corrigida e mais clara", "Resposta gentil para um cliente", "Publicação curta pronta para as redes"]
+        : ["Message corrected and clearer", "Friendly customer reply", "Short social post ready to publish"];
   return (
     <div className="mt-6 w-full rounded-3xl border border-white/10 bg-white/5 p-3">
       <div className="flex flex-col gap-2 rounded-2xl bg-[var(--background)] p-3 text-left">

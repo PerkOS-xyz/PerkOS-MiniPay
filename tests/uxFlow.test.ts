@@ -1,30 +1,35 @@
 import { describe, expect, it } from "vitest";
 
 import { creditsToUsd } from "../app/lib/credits";
-import { STARTER_CHORES } from "../app/lib/starterChores";
+import { STARTER_ACTIONS } from "../app/lib/starterChores";
 
 describe("first-run workflow", () => {
-  it("offers only the three launch wedges", () => {
-    expect(STARTER_CHORES.map((c) => c.templateId)).toEqual([
-      "merchant-daily",
-      "freelance-invoice",
-      "savings-group",
+  it("starts with six recognizable writing jobs", () => {
+    expect(STARTER_ACTIONS.map((action) => action.id)).toEqual([
+      "fix-text",
+      "customer-reply",
+      "social-post",
+      "change-tone",
+      "translate",
+      "summarize",
     ]);
   });
 
-  it("starts every shortcut with a concrete goal", () => {
+  it("gives every action a concrete instruction and input hint", () => {
     expect(
-      STARTER_CHORES.every((c) =>
-        Object.values(c.copy).every((copy) => copy.goal.trim().length > 20),
+      STARTER_ACTIONS.every((action) =>
+        Object.values(action.copy).every(
+          (copy) => copy.instruction.trim().length > 20 && copy.placeholder.trim().length > 10,
+        ),
       ),
     ).toBe(true);
   });
 
-  it("has complete English, Spanish, and Portuguese shortcut copy", () => {
-    for (const chore of STARTER_CHORES) {
+  it("has complete English, Spanish, and Portuguese action copy", () => {
+    for (const action of STARTER_ACTIONS) {
       for (const locale of ["en", "es", "pt"] as const) {
-        expect(chore.copy[locale].label).toBeTruthy();
-        expect(chore.copy[locale].sub).toBeTruthy();
+        expect(action.copy[locale].label).toBeTruthy();
+        expect(action.copy[locale].sub).toBeTruthy();
       }
     }
   });

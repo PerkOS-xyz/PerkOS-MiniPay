@@ -54,24 +54,24 @@ export type LandingCopy = {
 };
 
 const en: LandingCopy = {
-  eyebrow: "Meet Anna, your business companion",
+  eyebrow: "Meet Anna, your everyday business helper",
   hero: {
-    headline: "Your business, clearer every day",
+    headline: "Say it better. Get more done.",
     subhead:
-      "Anna logs sales, prepares invoices, and follows up on late payments with you. You approve every step, and your money never leaves your wallet.",
+      "Fix a message, reply to a customer, or create a social post in minutes. Just paste what you have. Anna helps you finish it.",
     ctaPrimary: "Get started free",
     ctaSecondary: "See what it can do",
     enterApp: "Open the app",
     browserNote: "On the web, continue with email or a wallet. In MiniPay, your wallet connects automatically.",
-    trust: ["Free to start", "No seed phrase", "Money stays in your wallet"],
+    trust: ["Free to start", "No AI skills needed", "English, Spanish, Portuguese"],
   },
   problem: {
     title: "Sound familiar?",
     items: [
-      "You keep chasing the same customers for money.",
-      "You lose track of who bought on credit.",
-      "You never really know your weekly profit.",
-      "The same admin eats your evening, every day.",
+      "You rewrite the same customer message again and again.",
+      "You know what to say, but it is hard to make it sound professional.",
+      "A social post takes longer than the work it promotes.",
+      "Notes and long messages pile up before you can organize them.",
     ],
   },
   how: {
@@ -79,22 +79,22 @@ const en: LandingCopy = {
     steps: [
       { title: "Open it in MiniPay", desc: "No signup, no seed phrase. Your wallet is already there." },
       { title: "Tell Anna what you need", desc: "Speak or type naturally. Nothing new to learn." },
-      { title: "See the plan and cost", desc: "Anna shows the steps and a small credit estimate. You approve it." },
-      { title: "Get something useful", desc: "Anna hands you what's ready. You make any payment yourself in MiniPay." },
+      { title: "Paste what you have", desc: "It can be a rough message, an idea, or a long note." },
+      { title: "Copy the finished result", desc: "Anna gives you clear text that is ready to send or publish." },
     ],
-    key: "It prepares the work. You stay in control of the money.",
+    key: "No special prompts. Choose an action and use your own words.",
   },
   templates: {
-    title: "What it does for you",
-    subtitle: "Practical skills you can add to Anna in one tap.",
+    title: "Help for everyday work",
+    subtitle: "Choose a simple action or a profile for your kind of business.",
     more: "See 2 more",
     items: [
-      { emoji: "🧾", title: "Merchant Daily", benefit: "Log every sale in seconds and get your profit added up at the end of each week." },
-      { emoji: "🛒", title: "Market Trader", benefit: "Record sales fast and always remember who is buying on credit." },
-      { emoji: "📄", title: "Freelance Invoices", benefit: "Draft clean invoices and politely chase the ones that go unpaid." },
-      { emoji: "🤝", title: "Savings Group (Ajo / ROSCA)", benefit: "Keep your group's rotation and ledger straight, so everyone knows who has paid." },
-      { emoji: "🌍", title: "Cross-Border Trade", benefit: "Track what you owe suppliers and check today's rate at a glance." },
-      { emoji: "🏠", title: "Rent Tracker", benefit: "Get a reminder before rent is due, so you never miss a date." },
+      { emoji: "✍️", title: "Fix My Text", benefit: "Turn a rough message into clear, natural writing while keeping your meaning." },
+      { emoji: "💬", title: "Customer Reply", benefit: "Prepare a friendly, professional response you can copy into WhatsApp or email." },
+      { emoji: "📣", title: "Social Post", benefit: "Create a short promotion from one simple idea about your product or service." },
+      { emoji: "🗂️", title: "Secretary Help", benefit: "Summarize long notes, organize tasks, and prepare everyday messages." },
+      { emoji: "🛒", title: "Shop Helper", benefit: "Write product descriptions, opening updates, and customer answers for your store." },
+      { emoji: "🍽️", title: "Restaurant Helper", benefit: "Prepare menu descriptions, daily specials, and courteous guest replies." },
     ],
   },
   pricing: {
@@ -120,8 +120,8 @@ const en: LandingCopy = {
   },
   social: "Built for the 14M+ people already using MiniPay.",
   finalCta: {
-    title: "Your business, minus the paperwork.",
-    sub: "Free to start. No seed phrase.",
+    title: "Start with the message in front of you.",
+    sub: "Paste it. Choose what you need. Copy the result.",
     cta: "Get started free",
   },
   minipay: {
@@ -132,24 +132,24 @@ const en: LandingCopy = {
 };
 
 const es: LandingCopy = {
-  eyebrow: "Conoce a Anna, tu compañera de negocio",
+  eyebrow: "Conoce a Anna, tu ayuda para el trabajo diario",
   hero: {
-    headline: "Tu negocio, más claro cada día",
+    headline: "Exprésate mejor. Avanza más.",
     subhead:
-      "Anna registra ventas, prepara facturas y te ayuda a cobrar lo pendiente. Tú apruebas cada paso, y tu dinero nunca sale de tu wallet.",
+      "Corrige un mensaje, responde a un cliente o crea una publicación en minutos. Solo pega lo que tienes. Anna te ayuda a terminarlo.",
     ctaPrimary: "Empieza gratis",
     ctaSecondary: "Mira lo que hace",
     enterApp: "Abrir la app",
     browserNote: "En la web, continúa con email o wallet. Dentro de MiniPay, tu wallet se conecta automáticamente.",
-    trust: ["Gratis para empezar", "Sin frase semilla", "Tu dinero se queda en tu wallet"],
+    trust: ["Gratis para empezar", "No necesitas saber de IA", "Español, inglés y portugués"],
   },
   problem: {
     title: "¿Te suena?",
     items: [
-      "Persigues a los mismos clientes para que te paguen.",
-      "Pierdes la cuenta de quién compró fiado.",
-      "Nunca sabes bien cuánto ganaste en la semana.",
-      "El mismo papeleo se come tu noche, todos los días.",
+      "Reescribes el mismo mensaje para clientes una y otra vez.",
+      "Sabes qué decir, pero cuesta que suene profesional.",
+      "Una publicación tarda más que el trabajo que quieres promocionar.",
+      "Las notas y los mensajes largos se acumulan antes de poder organizarlos.",
     ],
   },
   how: {
@@ -157,22 +157,22 @@ const es: LandingCopy = {
     steps: [
       { title: "Ábrelo en MiniPay", desc: "Sin registro, sin frase semilla. Tu wallet ya está ahí." },
       { title: "Cuéntale a Anna qué necesitas", desc: "Habla o escribe con naturalidad. Nada nuevo que aprender." },
-      { title: "Revisa el plan y el costo", desc: "Anna te muestra los pasos y un pequeño estimado en créditos. Tú lo apruebas." },
-      { title: "Recibe algo útil", desc: "Anna te entrega lo que está listo. Tú haces cualquier pago desde MiniPay." },
+      { title: "Pega lo que tienes", desc: "Puede ser un mensaje sin terminar, una idea o una nota larga." },
+      { title: "Copia el resultado terminado", desc: "Anna te entrega un texto claro, listo para enviar o publicar." },
     ],
-    key: "Prepara el trabajo. Tú tienes el control del dinero.",
+    key: "Sin instrucciones complicadas. Elige una acción y usa tus propias palabras.",
   },
   templates: {
-    title: "Lo que hace por ti",
-    subtitle: "Capacidades prácticas que agregas a Anna con un toque.",
+    title: "Ayuda para el trabajo diario",
+    subtitle: "Elige una acción simple o un perfil para tu tipo de negocio.",
     more: "Ver 2 más",
     items: [
-      { emoji: "🧾", title: "Comercio Diario", benefit: "Registra cada venta en segundos y ve tu ganancia sumada al final de la semana." },
-      { emoji: "🛒", title: "Vendedor de Mercado", benefit: "Anota ventas rápido y recuerda siempre quién compra fiado." },
-      { emoji: "📄", title: "Facturas Freelance", benefit: "Prepara facturas claras y cobra con amabilidad las que quedan sin pagar." },
-      { emoji: "🤝", title: "Grupo de Ahorro (Ajo / Tanda)", benefit: "Lleva el orden y el registro del grupo, para que todos sepan quién ya pagó." },
-      { emoji: "🌍", title: "Comercio Transfronterizo", benefit: "Controla lo que debes a proveedores y revisa el tipo de cambio de hoy de un vistazo." },
-      { emoji: "🏠", title: "Control de Renta", benefit: "Recibe un recordatorio antes del vencimiento, para no perder ninguna fecha." },
+      { emoji: "✍️", title: "Corregir mi texto", benefit: "Convierte un mensaje rápido en un texto claro y natural sin cambiar lo que quieres decir." },
+      { emoji: "💬", title: "Responder a un cliente", benefit: "Prepara una respuesta amable y profesional para copiar en WhatsApp o email." },
+      { emoji: "📣", title: "Publicación para redes", benefit: "Crea una promoción corta a partir de una idea simple sobre tu producto o servicio." },
+      { emoji: "🗂️", title: "Ayuda de secretaría", benefit: "Resume notas largas, organiza tareas y prepara mensajes cotidianos." },
+      { emoji: "🛒", title: "Ayuda para mi tienda", benefit: "Escribe descripciones, horarios y respuestas para los clientes de tu comercio." },
+      { emoji: "🍽️", title: "Ayuda para mi restaurante", benefit: "Prepara descripciones del menú, especiales del día y respuestas amables." },
     ],
   },
   pricing: {
@@ -198,8 +198,8 @@ const es: LandingCopy = {
   },
   social: "Hecho para los más de 14 millones que ya usan MiniPay.",
   finalCta: {
-    title: "Tu negocio, sin el papeleo.",
-    sub: "Gratis para empezar. Sin frase semilla.",
+    title: "Empieza con el mensaje que tienes delante.",
+    sub: "Pégalo. Elige lo que necesitas. Copia el resultado.",
     cta: "Empieza gratis",
   },
   minipay: {
@@ -210,24 +210,24 @@ const es: LandingCopy = {
 };
 
 const pt: LandingCopy = {
-  eyebrow: "Conheça Anna, sua parceira de negócios",
+  eyebrow: "Conheça Anna, sua ajuda para o trabalho diário",
   hero: {
-    headline: "Seu negócio, mais claro todos os dias",
+    headline: "Comunique-se melhor. Faça mais.",
     subhead:
-      "Anna registra vendas, prepara faturas e ajuda você a cobrar pagamentos atrasados. Você aprova cada etapa, e seu dinheiro nunca sai da sua carteira.",
+      "Corrija uma mensagem, responda a um cliente ou crie uma publicação em minutos. Basta colar o que você tem. Anna ajuda a concluir.",
     ctaPrimary: "Comece grátis",
     ctaSecondary: "Veja o que ela pode fazer",
     enterApp: "Abrir o app",
     browserNote: "Na web, continue com e-mail ou carteira. No MiniPay, sua carteira se conecta automaticamente.",
-    trust: ["Grátis para começar", "Sem frase-semente", "Seu dinheiro fica na sua carteira"],
+    trust: ["Grátis para começar", "Não precisa saber usar IA", "Português, espanhol e inglês"],
   },
   problem: {
     title: "Parece familiar?",
     items: [
-      "Você vive cobrando os mesmos clientes.",
-      "Você perde o controle de quem comprou fiado.",
-      "Você nunca sabe ao certo quanto lucrou na semana.",
-      "A mesma papelada ocupa sua noite todos os dias.",
+      "Você reescreve a mesma mensagem para clientes várias vezes.",
+      "Você sabe o que dizer, mas é difícil fazer parecer profissional.",
+      "Uma publicação demora mais que o trabalho que você quer divulgar.",
+      "Notas e mensagens longas se acumulam antes que você possa organizá-las.",
     ],
   },
   how: {
@@ -235,22 +235,22 @@ const pt: LandingCopy = {
     steps: [
       { title: "Abra no MiniPay", desc: "Sem cadastro e sem frase-semente. Sua carteira já está lá." },
       { title: "Conte para Anna o que precisa", desc: "Fale ou escreva naturalmente. Nada novo para aprender." },
-      { title: "Veja o plano e o custo", desc: "Anna mostra as etapas e uma pequena estimativa em créditos. Você aprova." },
-      { title: "Receba algo útil", desc: "Anna entrega o que estiver pronto. Você faz qualquer pagamento no MiniPay." },
+      { title: "Cole o que você tem", desc: "Pode ser uma mensagem incompleta, uma ideia ou uma nota longa." },
+      { title: "Copie o resultado pronto", desc: "Anna entrega um texto claro, pronto para enviar ou publicar." },
     ],
-    key: "Ela prepara o trabalho. Você mantém o controle do dinheiro.",
+    key: "Sem instruções complicadas. Escolha uma ação e use suas próprias palavras.",
   },
   templates: {
-    title: "O que ela faz por você",
-    subtitle: "Recursos práticos que você adiciona à Anna com um toque.",
+    title: "Ajuda para o trabalho diário",
+    subtitle: "Escolha uma ação simples ou um perfil para o seu tipo de negócio.",
     more: "Ver mais 2",
     items: [
-      { emoji: "🧾", title: "Comércio Diário", benefit: "Registre cada venda em segundos e veja seu lucro somado no fim da semana." },
-      { emoji: "🛒", title: "Vendedor de Mercado", benefit: "Anote vendas rapidamente e lembre sempre quem está comprando fiado." },
-      { emoji: "📄", title: "Faturas Freelance", benefit: "Prepare faturas claras e cobre com educação as que ainda não foram pagas." },
-      { emoji: "🤝", title: "Grupo de Poupança", benefit: "Mantenha a ordem e os registros do grupo para todos saberem quem já pagou." },
-      { emoji: "🌍", title: "Comércio Internacional", benefit: "Acompanhe o que deve aos fornecedores e consulte a cotação do dia rapidamente." },
-      { emoji: "🏠", title: "Controle de Aluguel", benefit: "Receba um lembrete antes do vencimento para nunca perder uma data." },
+      { emoji: "✍️", title: "Corrigir meu texto", benefit: "Transforme uma mensagem rápida em um texto claro e natural sem mudar o sentido." },
+      { emoji: "💬", title: "Responder a um cliente", benefit: "Prepare uma resposta gentil e profissional para copiar no WhatsApp ou e-mail." },
+      { emoji: "📣", title: "Publicação para redes", benefit: "Crie uma promoção curta a partir de uma ideia sobre seu produto ou serviço." },
+      { emoji: "🗂️", title: "Ajuda de secretaria", benefit: "Resuma notas longas, organize tarefas e prepare mensagens do dia a dia." },
+      { emoji: "🛒", title: "Ajuda para minha loja", benefit: "Escreva descrições, horários e respostas para os clientes da sua loja." },
+      { emoji: "🍽️", title: "Ajuda para meu restaurante", benefit: "Prepare descrições do cardápio, especiais do dia e respostas atenciosas." },
     ],
   },
   pricing: {
@@ -276,8 +276,8 @@ const pt: LandingCopy = {
   },
   social: "Feito para mais de 14 milhões de pessoas que já usam o MiniPay.",
   finalCta: {
-    title: "Seu negócio, sem a papelada.",
-    sub: "Grátis para começar. Sem frase-semente.",
+    title: "Comece com a mensagem que está na sua frente.",
+    sub: "Cole. Escolha o que precisa. Copie o resultado.",
     cta: "Comece grátis",
   },
   minipay: {

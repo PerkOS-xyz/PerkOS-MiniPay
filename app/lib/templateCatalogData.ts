@@ -930,236 +930,75 @@ export const BASIC_AGENTS: BasicAgent[] = [
 
 export const TEMPLATE_CATALOG: MiniPayTemplate[] = [
   {
-    "id": "remit-family",
-    "name": "Family Remittance",
-    "tagline": "Keep transfers to family on schedule and know when they arrive.",
-    "category": "remittances",
-    "pricingBand": "basic",
-    "ring": 2,
-    "basicIds": [
-      "remittance-tracker"
-    ]
+    id: "everyday-writing",
+    name: "Writing & Messages",
+    tagline: "Fix, shorten, translate, or improve any text.",
+    category: "writing",
+    pricingBand: "basic",
+    ring: 1,
+    basicIds: ["assistant"],
   },
   {
-    "id": "savings-group",
-    "name": "Savings Group (Ajo/ROSCA)",
-    "tagline": "Run your Ajo, Susu, or chama without arguments about who paid.",
-    "category": "savings-groups",
-    "pricingBand": "pro",
-    "ring": 3,
-    "basicIds": [
-      "rotation-coordinator",
-      "group-ledger"
-    ]
+    id: "customer-messages",
+    name: "Customer Care",
+    tagline: "Reply clearly and kindly without promising what you did not approve.",
+    category: "customers",
+    pricingBand: "basic",
+    ring: 1,
+    basicIds: ["customer-replies"],
   },
   {
-    "id": "merchant-daily",
-    "name": "Merchant Daily",
-    "tagline": "Log the day's sales, answer customers, and close each evening knowing how you did.",
-    "category": "merchant",
-    "pricingBand": "pro",
-    "ring": 1,
-    "basicIds": [
-      "bookkeeper",
-      "customer-replies",
-      "summary-reporter"
-    ]
+    id: "social-posts",
+    name: "Posts & Promotions",
+    tagline: "Turn an offer or idea into a post and a short Status.",
+    category: "marketing",
+    pricingBand: "basic",
+    ring: 1,
+    basicIds: ["assistant"],
   },
   {
-    "id": "bill-pay",
-    "name": "Bill Planner",
-    "tagline": "See every bill coming and have the details ready to pay.",
-    "category": "everyday",
-    "pricingBand": "basic",
-    "ring": 3,
-    "basicIds": [
-      "payment-scheduler"
-    ]
+    id: "secretary-daily",
+    name: "Daily Secretary",
+    tagline: "Prepare emails, notices, summaries, invitations, and next steps.",
+    category: "office",
+    pricingBand: "basic",
+    ring: 1,
+    basicIds: ["assistant"],
   },
   {
-    "id": "airtime-data",
-    "name": "Airtime & Data",
-    "tagline": "Track airtime and data, and top up before you run out.",
-    "category": "everyday",
-    "pricingBand": "basic",
-    "ring": 3,
-    "basicIds": [
-      "topup-tracker"
-    ]
+    id: "shop-helper",
+    name: "Shop & Minimarket",
+    tagline: "Answer questions about prices, hours, stock, and today's offers.",
+    category: "business",
+    pricingBand: "basic",
+    ring: 1,
+    basicIds: ["customer-replies", "assistant"],
   },
   {
-    "id": "group-expense",
-    "name": "Split Expenses",
-    "tagline": "Split trips and events fairly and see who still owes.",
-    "category": "everyday",
-    "pricingBand": "basic",
-    "ring": 1,
-    "basicIds": [
-      "expense-splitter"
-    ]
+    id: "restaurant-helper",
+    name: "Restaurant & Food",
+    tagline: "Prepare menus, confirm orders, explain delivery times, and handle feedback.",
+    category: "business",
+    pricingBand: "basic",
+    ring: 1,
+    basicIds: ["customer-replies", "assistant"],
   },
   {
-    "id": "yield-mover",
-    "name": "Idle Money Guide",
-    "tagline": "Learn what your idle cUSD could do — in plain words, no advice.",
-    "category": "informal-finance",
-    "pricingBand": "pro",
-    "ring": 3,
-    "basicIds": [
-      "money-explainer"
-    ]
+    id: "service-business",
+    name: "Services & Freelance",
+    tagline: "Write quotes, scope notes, updates, and delivery messages.",
+    category: "business",
+    pricingBand: "basic",
+    ring: 1,
+    basicIds: ["assistant", "customer-replies"],
   },
   {
-    "id": "freelance-invoice",
-    "name": "Freelance Invoices",
-    "tagline": "Draft clean invoices and chase the unpaid ones politely.",
-    "category": "merchant",
-    "pricingBand": "pro",
-    "ring": 1,
-    "basicIds": [
-      "invoice-maker",
-      "reminder-writer"
-    ]
+    id: "social-seller",
+    name: "Social Seller",
+    tagline: "Describe products and follow up with interested buyers.",
+    category: "marketing",
+    pricingBand: "basic",
+    ring: 1,
+    basicIds: ["customer-replies", "assistant"],
   },
-  {
-    "id": "micro-credit",
-    "name": "Lending Circle Records",
-    "tagline": "Keep clear records of your group's small loans.",
-    "category": "informal-finance",
-    "pricingBand": "pro",
-    "ring": 3,
-    "basicIds": [
-      "group-ledger",
-      "reminder-writer"
-    ]
-  },
-  {
-    "id": "cross-border-trade",
-    "name": "Cross-Border Trade",
-    "tagline": "Track supplier payments and what today's rate means.",
-    "category": "merchant",
-    "pricingBand": "pro",
-    "ring": 1,
-    "basicIds": [
-      "bookkeeper",
-      "money-explainer"
-    ]
-  },
-  {
-    "id": "school-fees",
-    "name": "School Fees",
-    "tagline": "Track every child's fees so due dates never surprise you.",
-    "category": "everyday",
-    "pricingBand": "basic",
-    "ring": 1,
-    "basicIds": [
-      "payment-scheduler"
-    ]
-  },
-  {
-    "id": "market-trader",
-    "name": "Market Trader",
-    "tagline": "Log sales in seconds, answer customers, and remember who buys on credit.",
-    "category": "merchant",
-    "pricingBand": "basic",
-    "ring": 1,
-    "basicIds": [
-      "bookkeeper",
-      "debt-tracker",
-      "customer-replies"
-    ]
-  },
-  {
-    "id": "diaspora-support",
-    "name": "Family Support Abroad",
-    "tagline": "Plan monthly support and know it arrived.",
-    "category": "remittances",
-    "pricingBand": "pro",
-    "ring": 1,
-    "basicIds": [
-      "remittance-tracker",
-      "summary-reporter"
-    ]
-  },
-  {
-    "id": "savings-goal",
-    "name": "Savings Goal",
-    "tagline": "Set a goal, report every save, and watch it grow.",
-    "category": "everyday",
-    "pricingBand": "basic",
-    "ring": 1,
-    "basicIds": [
-      "goal-coach"
-    ]
-  },
-  {
-    "id": "rent-collector",
-    "name": "Rent Tracker",
-    "tagline": "See every tenant's rent status and remind on time.",
-    "category": "informal-finance",
-    "pricingBand": "pro",
-    "ring": 2,
-    "basicIds": [
-      "payment-scheduler",
-      "reminder-writer"
-    ]
-  },
-  {
-    "id": "cooperative-finance",
-    "name": "Cooperative Records",
-    "tagline": "One trusted book for contributions, loans, and payouts.",
-    "category": "savings-groups",
-    "pricingBand": "pro",
-    "ring": 3,
-    "basicIds": [
-      "group-ledger",
-      "summary-reporter"
-    ]
-  },
-  {
-    "id": "momo-bridge",
-    "name": "Mobile Money Helper",
-    "tagline": "Move between cUSD and M-Pesa or MoMo, step by step.",
-    "category": "everyday",
-    "pricingBand": "basic",
-    "ring": 3,
-    "basicIds": [
-      "money-explainer"
-    ]
-  },
-  {
-    "id": "event-contributions",
-    "name": "Event Contributions",
-    "tagline": "Record every gift at a wedding, funeral, or ceremony.",
-    "category": "savings-groups",
-    "pricingBand": "basic",
-    "ring": 1,
-    "basicIds": [
-      "group-ledger"
-    ]
-  },
-  {
-    "id": "import-tracker",
-    "name": "Import Payments",
-    "tagline": "Track what you owe suppliers and what you've paid.",
-    "category": "merchant",
-    "pricingBand": "pro",
-    "ring": 1,
-    "basicIds": [
-      "bookkeeper",
-      "payment-scheduler"
-    ]
-  },
-  {
-    "id": "community-welfare",
-    "name": "Community Fund",
-    "tagline": "Keep your welfare fund transparent — every collection and payout.",
-    "category": "savings-groups",
-    "pricingBand": "pro",
-    "ring": 3,
-    "basicIds": [
-      "group-ledger",
-      "summary-reporter"
-    ]
-  }
 ];

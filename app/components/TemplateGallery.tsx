@@ -6,30 +6,15 @@ import {
   CATEGORY_LABELS,
   CATEGORY_ORDER,
   glyphFor,
+  isEverydayTemplate,
+  localizedTemplate,
   type CategoryKey,
 } from "../lib/templateMeta";
 import { translated, useLanguage } from "../lib/i18n";
 
-const CATEGORY_LABELS_ES: Record<CategoryKey, string> = {
-  merchant: "Mi negocio",
-  everyday: "Dinero diario",
-  remittances: "Familia y remesas",
-  "savings-groups": "Ahorro y grupos",
-  "informal-finance": "Renta y préstamos",
-};
-
-const CATEGORY_LABELS_PT: Record<CategoryKey, string> = {
-  merchant: "Meu negócio",
-  everyday: "Dinheiro do dia a dia",
-  remittances: "Família e remessas",
-  "savings-groups": "Poupança e grupos",
-  "informal-finance": "Aluguel e empréstimos",
-};
-
 /**
- * The template gallery — the entry point of the shared-agents model. Templates
- * are PerkOS-owned; "Use this" activates one (creates the user's project on
- * the shared fleet, instant) and calls back with the new project id.
+ * Optional work profiles. The shared-agent machinery stays invisible: people
+ * choose the kind of work they do, never an agent or deployment.
  */
 export function TemplateGallery({
   activeTemplateIds,
@@ -48,7 +33,7 @@ export function TemplateGallery({
     setError(null);
     setTemplates(null);
     listTemplates()
-      .then(setTemplates)
+      .then((items) => setTemplates(items.filter((item) => isEverydayTemplate(item.id))))
       .catch((e) =>
         setError(
           e instanceof Error
@@ -96,10 +81,21 @@ export function TemplateGallery({
   if (!templates) {
     return <p className="text-sm text-[var(--muted)]">{tr("Loading tools…", "Cargando herramientas…", "Carregando ferramentas…")}</p>;
   }
+  if (templates.length === 0) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-[var(--muted)]">
+        {tr(
+          "The new work profiles are being prepared. Quick actions are ready to use now.",
+          "Estamos preparando los nuevos perfiles. Las acciones rápidas ya están disponibles.",
+          "Estamos preparando os novos perfis. As ações rápidas já estão disponíveis.",
+        )}
+      </div>
+    );
+  }
 
   const byCat = new Map<CategoryKey, Template[]>();
   for (const t of templates) {
-    const cat = (t.category as CategoryKey) ?? "everyday";
+    const cat = (t.category as CategoryKey) ?? "writing";
     (byCat.get(cat) ?? byCat.set(cat, []).get(cat)!).push(t);
   }
 
@@ -109,10 +105,11 @@ export function TemplateGallery({
       {CATEGORY_ORDER.filter((c) => byCat.has(c)).map((cat) => (
         <section key={cat} className="flex flex-col gap-3">
           <h2 className="text-sm font-medium text-[var(--muted)]">
-            {locale === "es" ? CATEGORY_LABELS_ES[cat] : locale === "pt" ? CATEGORY_LABELS_PT[cat] : CATEGORY_LABELS[cat]}
+            {CATEGORY_LABELS[cat][locale]}
           </h2>
           {byCat.get(cat)!.map((t) => {
             const active = activeTemplateIds.has(t.id);
+            const copy = localizedTemplate(t.id, locale, t);
             return (
               <div
                 key={t.id}
@@ -126,8 +123,8 @@ export function TemplateGallery({
                   {glyphFor(t.id)}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium">{t.name}</p>
-                  <p className="text-xs text-[var(--muted)]">{t.tagline}</p>
+                  <p className="font-medium">{copy.name}</p>
+                  <p className="text-xs leading-relaxed text-[var(--muted)]">{copy.tagline}</p>
                 </div>
                 <button
                   onClick={() => !active && use(t.id)}

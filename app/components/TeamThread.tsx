@@ -53,9 +53,9 @@ let seq = 0;
 const uid = () => `b${(seq += 1)}`;
 
 const STARTERS = {
-  en: ["How much did I earn this week?", "Who owes me money?", "Send a payment reminder"],
-  es: ["¿Cuánto gané esta semana?", "¿Quién me debe dinero?", "Enviar un recordatorio de pago"],
-  pt: ["Quanto ganhei esta semana?", "Quem está me devendo?", "Enviar um lembrete de pagamento"],
+  en: ["Reply to this customer", "Write a short promotion", "Organize these notes"],
+  es: ["Responder a este cliente", "Escribir una promoción corta", "Organizar estas notas"],
+  pt: ["Responder a este cliente", "Escrever uma promoção curta", "Organizar estas anotações"],
 };
 
 export function TeamThread({

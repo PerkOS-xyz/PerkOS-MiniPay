@@ -41,6 +41,17 @@ describe("landing copy", () => {
       expect(copy).not.toMatch(/AI team|equipo de IA/i);
     }
   });
+
+  it("does not market debt collection or money-chasing templates", () => {
+    const publicTemplates = LOCALES
+      .flatMap((locale) => MESSAGES[locale].templates.items)
+      .map((item) => `${item.title} ${item.benefit}`)
+      .join(" ");
+
+    expect(publicTemplates).not.toMatch(
+      /late payment|unpaid|chase|collect money|cobrar|cobro|fiado|sin pagar|pagamento atrasado|cobre|dívida|rent tracker|control de renta|controle de aluguel/i,
+    );
+  });
 });
 
 describe("detectLocale", () => {

@@ -11,9 +11,9 @@ type LanguageContextValue = {
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 const DOCUMENT_TITLES: Record<Locale, string> = {
-  en: "Anna by PerkOS — Your business companion",
-  es: "Anna by PerkOS — Tu compañera de negocio",
-  pt: "Anna by PerkOS — Sua parceira de negócios",
+  en: "Anna by PerkOS — Everyday business help",
+  es: "Anna by PerkOS — Ayuda para el trabajo diario",
+  pt: "Anna by PerkOS — Ajuda para o trabalho diário",
 };
 
 export function LanguageProvider({ children }: { children: ReactNode }) {

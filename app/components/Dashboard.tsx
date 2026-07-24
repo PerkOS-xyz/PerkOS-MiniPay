@@ -12,7 +12,7 @@ import {
   type Task,
   type Template,
 } from "../lib/perkosApi";
-import { glyphFor } from "../lib/templateMeta";
+import { glyphFor, localizedTemplate } from "../lib/templateMeta";
 import { collectPendingTasks, countDoneTasks, toolTaskSummary } from "../lib/dashboardStats";
 import { WalletPanel } from "./WalletPanel";
 import { DiagnosticPanel } from "./DiagnosticPanel";
@@ -181,6 +181,7 @@ export function Dashboard({
         <SectionHeader label={tr("Your tools", "Tus herramientas", "Suas ferramentas")} />
         {projects.map((p) => {
           const tpl = templateFor(p);
+          const tplCopy = tpl ? localizedTemplate(tpl.id, locale, tpl) : null;
           const tasks = tasksByProject.get(p.id) ?? [];
           const { queued, done } = toolTaskSummary(tasks);
           const summary =
@@ -188,7 +189,7 @@ export function Dashboard({
               ? tr(`${queued} in progress`, `${queued} en progreso`, `${queued} em andamento`)
               : done > 0
                 ? tr(`${done} done`, `${done} listos`, `${done} concluídos`)
-                : tpl?.tagline ?? tr("Ready to use with Anna", "Lista para usar con Anna", "Pronta para usar com Anna");
+                : tplCopy?.tagline ?? tr("Ready to use with Anna", "Lista para usar con Anna", "Pronta para usar com Anna");
           return (
             <button
               key={p.id}
@@ -203,7 +204,7 @@ export function Dashboard({
                 {tpl ? glyphFor(tpl.id) : "✦"}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">{tpl?.name ?? p.name}</span>
+                <span className="block truncate font-medium">{tplCopy?.name ?? p.name}</span>
                 <span className="block truncate text-xs text-[var(--muted)]">{summary}</span>
               </span>
               <span

@@ -669,3 +669,34 @@ export async function activateTemplate(
     body: JSON.stringify({ templateId }),
   });
 }
+
+export type QuickActionResult = {
+  ok: true;
+  action: import("./starterChores").QuickActionId;
+  result: string;
+  costCredits: 1;
+  settlement: "free" | "credits" | "exempt";
+  balanceAfter: number | null;
+  freeWorkflowsLeft: number | null;
+};
+
+/** One direct everyday writing job — no project or multi-step plan. */
+export async function runQuickAction(input: {
+  action: import("./starterChores").QuickActionId;
+  text: string;
+  locale: "en" | "es" | "pt";
+  requestId: string;
+}): Promise<QuickActionResult> {
+  const res = await authedFetch("/minipay/quick-actions/run", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  const body = (await res.json().catch(() => ({}))) as QuickActionResult & {
+    error?: { message?: string };
+    message?: string;
+  };
+  if (!res.ok || !body.ok) {
+    throw new Error(body.error?.message ?? body.message ?? `Quick action failed (${res.status})`);
+  }
+  return body;
+}
