@@ -30,6 +30,7 @@ import { useLanguage } from "../lib/i18n";
 import { AnnaAvatar } from "./AnnaAvatar";
 import { QuickActions } from "./QuickActions";
 import { UserProfile } from "./UserProfile";
+import { ExternalTransfer } from "./ExternalTransfer";
 
 type Loaded = {
   agents: Agent[];
@@ -76,7 +77,7 @@ export function Home({ address }: { address: string }) {
 
   const [data, setData] = useState<Loaded | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [view, setView] = useState<"list" | "gallery" | "profile" | "wallet">("list");
+  const [view, setView] = useState<"list" | "gallery" | "profile" | "transfer" | "wallet">("list");
   const [openProjectId, setOpenProjectId] = useState<string | null>(null);
   // Carried in from the first-run "what do you need?" box so the team thread
   // opens with the merchant's own words already sent.
@@ -214,11 +215,23 @@ export function Home({ address }: { address: string }) {
     return (
       <main className="flex flex-col gap-5 px-5 py-7">
         {header}
-        <UserProfile address={address} onOpenBusinessWallet={() => setView("wallet")} />
+        <UserProfile address={address} onOpenTransfer={() => setView("transfer")} onOpenBusinessWallet={() => setView("wallet")} />
         <button
           onClick={() => setView("list")}
           className="text-sm text-[var(--muted)] underline-offset-2 hover:underline"
         >
+          {copy.back}
+        </button>
+      </main>
+    );
+  }
+
+  if (view === "transfer") {
+    return (
+      <main className="flex flex-col gap-5 px-5 py-7">
+        {header}
+        <ExternalTransfer address={address} />
+        <button onClick={() => setView("profile")} className="text-sm text-[var(--muted)] underline-offset-2 hover:underline">
           {copy.back}
         </button>
       </main>
