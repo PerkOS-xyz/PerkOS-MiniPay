@@ -29,6 +29,8 @@ import { LanguageSelect } from "./LanguageSelect";
 import { useLanguage } from "../lib/i18n";
 import { AnnaAvatar } from "./AnnaAvatar";
 import { QuickActions } from "./QuickActions";
+import { UserProfile } from "./UserProfile";
+import { ExternalTransfer } from "./ExternalTransfer";
 
 type Loaded = {
   agents: Agent[];
@@ -44,7 +46,7 @@ export function Home({ address }: { address: string }) {
   const copy = locale === "es"
     ? {
         loading: "Cargando…",
-        teamWallet: "Wallet del negocio",
+        profile: "Perfil",
         logout: "Cerrar sesión",
         addHelper: "Ayuda para tu trabajo",
         addHelperSub: "Elige el tipo de ayuda que más se parece a tu día. No tienes que configurar nada técnico.",
@@ -53,7 +55,7 @@ export function Home({ address }: { address: string }) {
     : locale === "pt"
       ? {
         loading: "Carregando…",
-        teamWallet: "Carteira do negócio",
+        profile: "Perfil",
         logout: "Sair",
         addHelper: "Ajuda para o seu trabalho",
         addHelperSub: "Escolha o tipo de ajuda que mais combina com o seu dia. Você não precisa configurar nada técnico.",
@@ -61,7 +63,7 @@ export function Home({ address }: { address: string }) {
       }
     : {
         loading: "Loading…",
-        teamWallet: "Business wallet",
+        profile: "Profile",
         logout: "Log out",
         addHelper: "Help for your work",
         addHelperSub: "Choose the kind of help that fits your day. There is nothing technical to configure.",
@@ -75,7 +77,7 @@ export function Home({ address }: { address: string }) {
 
   const [data, setData] = useState<Loaded | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [view, setView] = useState<"list" | "gallery" | "wallet">("list");
+  const [view, setView] = useState<"list" | "gallery" | "profile" | "transfer" | "wallet">("list");
   const [openProjectId, setOpenProjectId] = useState<string | null>(null);
   // Carried in from the first-run "what do you need?" box so the team thread
   // opens with the merchant's own words already sent.
@@ -130,10 +132,10 @@ export function Home({ address }: { address: string }) {
       <div className="flex items-center gap-3">
         <LanguageSelect compact />
         <button
-          onClick={() => setView("wallet")}
+          onClick={() => setView("profile")}
           className="text-xs text-[var(--muted)] underline-offset-2 hover:underline"
         >
-          {copy.teamWallet}
+          {copy.profile}
         </button>
         {!isMiniPay && (
           <button
@@ -176,6 +178,7 @@ export function Home({ address }: { address: string }) {
     return (
       <NeedToday
         onExplore={() => setView("gallery")}
+        onProfile={() => setView("profile")}
       />
     );
   }
@@ -207,6 +210,34 @@ export function Home({ address }: { address: string }) {
     );
   }
 
+  // --- User profile: connected wallet balances + explicit external send ----
+  if (view === "profile") {
+    return (
+      <main className="flex flex-col gap-5 px-5 py-7">
+        {header}
+        <UserProfile address={address} onOpenTransfer={() => setView("transfer")} onOpenBusinessWallet={() => setView("wallet")} />
+        <button
+          onClick={() => setView("list")}
+          className="text-sm text-[var(--muted)] underline-offset-2 hover:underline"
+        >
+          {copy.back}
+        </button>
+      </main>
+    );
+  }
+
+  if (view === "transfer") {
+    return (
+      <main className="flex flex-col gap-5 px-5 py-7">
+        {header}
+        <ExternalTransfer address={address} />
+        <button onClick={() => setView("profile")} className="text-sm text-[var(--muted)] underline-offset-2 hover:underline">
+          {copy.back}
+        </button>
+      </main>
+    );
+  }
+
   // --- Team wallet (server wallet: address + Celo balance + deposit) -------
   if (view === "wallet") {
     return (
@@ -214,7 +245,7 @@ export function Home({ address }: { address: string }) {
         {header}
         <ServerWallet address={address} />
         <button
-          onClick={() => setView("list")}
+          onClick={() => setView("profile")}
           className="text-sm text-[var(--muted)] underline-offset-2 hover:underline"
         >
           {copy.back}

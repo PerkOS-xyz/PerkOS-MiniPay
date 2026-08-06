@@ -1,4 +1,4 @@
-# PerkOS-MiniPay — production compose for minipay.perkos.xyz on perkos-cloud-02 (62.238.28.49).
+# Anna — production compose for anna.perkos.xyz on perkos-cloud-02 (62.238.28.49).
 # Caddy lives in perkos-knowledge-proxy and reverse_proxy's by container name over the shared network.
 # Despite the ".example" name this IS the production compose (same convention as the miniapp).
 #
@@ -10,7 +10,7 @@ services:
       context: .
       dockerfile: deploy/Dockerfile
       args:
-        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://minipay.perkos.xyz}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://anna.perkos.xyz}
         NEXT_PUBLIC_CELO_RPC_URL: ${NEXT_PUBLIC_CELO_RPC_URL:-https://forno.celo.org}
         NEXT_PUBLIC_BASE_RPC_URL: ${NEXT_PUBLIC_BASE_RPC_URL:-https://mainnet.base.org}
         NEXT_PUBLIC_ROBINHOOD_RPC_URL: ${NEXT_PUBLIC_ROBINHOOD_RPC_URL:-https://rpc.mainnet.chain.robinhood.com}

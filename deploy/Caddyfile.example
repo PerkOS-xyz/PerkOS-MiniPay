@@ -1,7 +1,7 @@
-# Add this block to the Caddyfile in perkos-knowledge-proxy on the VPS, then reload Caddy.
-# DNS minipay.perkos.xyz → 62.238.28.49 must resolve first so Caddy can issue the TLS cert.
+# Add these blocks to the Caddyfile in perkos-knowledge-proxy on the VPS, then reload Caddy.
+# DNS anna.perkos.xyz → 62.238.28.49 must resolve first so Caddy can issue the TLS cert.
 
-minipay.perkos.xyz {
+anna.perkos.xyz {
   encode gzip zstd
 
   reverse_proxy perkos-minipay:3000 {
@@ -11,7 +11,12 @@ minipay.perkos.xyz {
   }
 
   log {
-    output file /var/log/caddy/minipay.perkos.xyz.log
+    output file /var/log/caddy/anna.perkos.xyz.log
     format console
   }
+}
+
+# Preserve existing links while making Anna the canonical marketing domain.
+minipay.perkos.xyz {
+  redir https://anna.perkos.xyz{uri} permanent
 }

@@ -235,7 +235,7 @@ Base-centric and can't run in-wallet). Replaced by:
 ### 4.7 RPC / env
 - Celo RPC via Forno (`https://forno.celo.org`) or Alchemy (Alchemy supports Celo). PerkOS already wires
   `NEXT_PUBLIC_ALCHEMY_API_KEY` for Celo — reuse.
-- New env: `NEXT_PUBLIC_SITE_URL` = MiniPay launch domain (e.g. `minipay.perkos.xyz`), platform/escrow
+- New env: `NEXT_PUBLIC_SITE_URL` = Anna launch domain (`anna.perkos.xyz`), platform/escrow
   payment address, cUSD address.
 
 ---
@@ -388,7 +388,7 @@ If the app calls any custom contract it must be **verified on Celoscan** with sa
 plain ERC20 `transfer`s (no custom contract); the claim vault is already verified — so likely **N/A for v1**.
 
 ### Our gap-list before we can submit
-1. **Deploy to a public HTTPS host** (e.g. `minipay.perkos.xyz`, Caddy → Next standalone, same VPS pattern).
+1. **Deploy to a public HTTPS host** (`anna.perkos.xyz`, Caddy → Next standalone, same VPS pattern).
 2. Add **Terms of Service + Privacy Policy** pages and a **support link** in-app.
 3. Produce a **512×512 icon** + the listing copy (name/tagline/category).
 4. **Pin exact deps** + add `.npmrc` (release-age + ignore-scripts); rebuild with `npm ci`.
