@@ -7,6 +7,7 @@ import { celo } from "wagmi/chains";
 
 import { translated, useLanguage } from "../lib/i18n";
 import { usePayCusd } from "../lib/usePayCusd";
+import { useMiniPayHost } from "../lib/useIsMiniPay";
 import { CUSD, USDC, USDT, type TokenInfo } from "../lib/tokenAddresses";
 import {
   validateExternalTransfer,
@@ -24,12 +25,6 @@ const ERC20_BALANCE_ABI = [
 ] as const;
 
 type StableSymbol = "USDT" | "cUSD" | "USDC";
-
-const TOKENS: Record<StableSymbol, TokenInfo> = {
-  USDT,
-  cUSD: CUSD,
-  USDC,
-};
 
 function useTokenBalance(token: TokenInfo, account: `0x${string}`) {
   const result = useReadContract({
@@ -59,21 +54,21 @@ export function UserProfile({
   const { locale } = useLanguage();
   const tr = (en: string, es: string, pt: string) => translated(locale, en, es, pt);
   const sender = address as `0x${string}`;
+  const isMiniPay = useMiniPayHost();
   const { pay, ready } = usePayCusd();
   const usdt = useTokenBalance(USDT, sender);
   const cusd = useTokenBalance(CUSD, sender);
   const usdc = useTokenBalance(USDC, sender);
   const balances = { USDT: usdt, cUSD: cusd, USDC: usdc };
 
-  const [symbol, setSymbol] = useState<StableSymbol>("USDT");
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
   const [stage, setStage] = useState<"edit" | "review" | "sending" | "sent">("edit");
   const [error, setError] = useState<string | null>(null);
   const [hash, setHash] = useState<`0x${string}` | null>(null);
 
-  const token = TOKENS[symbol];
-  const balance = balances[symbol];
+  const token = USDT;
+  const balance = usdt;
 
   function validationMessage(code: TransferValidationError): string {
     switch (code) {
@@ -86,7 +81,7 @@ export function UserProfile({
       case "too-many-decimals":
         return tr(`Use no more than ${token.decimals} decimal places.`, `Usa máximo ${token.decimals} decimales.`, `Use no máximo ${token.decimals} casas decimais.`);
       case "insufficient-balance":
-        return tr(`You do not have enough ${symbol}.`, `No tienes suficiente ${symbol}.`, `Você não tem ${symbol} suficiente.`);
+        return tr("You do not have enough USDT.", "No tienes suficiente USDT.", "Você não tem USDT suficiente.");
       case "fee-reserve":
         return tr("Leave a small amount for the network fee.", "Deja una pequeña cantidad para la comisión de red.", "Deixe uma pequena quantia para a taxa de rede.");
     }
@@ -120,7 +115,7 @@ export function UserProfile({
     }
     setStage("sending");
     try {
-      const txHash = await pay(valid.recipient, amount.trim(), token);
+      const txHash = await pay(valid.recipient, amount.trim(), USDT);
       setHash(txHash);
       setStage("sent");
       setTimeout(() => {
@@ -172,29 +167,26 @@ export function UserProfile({
       </div>
 
       <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-        <h2 className="text-lg font-semibold">{tr("Send to another wallet", "Enviar a otra wallet", "Enviar para outra carteira")}</h2>
+        <h2 className="text-lg font-semibold">{tr("Send USDT from MiniPay", "Enviar USDT desde MiniPay", "Enviar USDT pelo MiniPay")}</h2>
         <p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">
-          {tr("Transfers happen on Celo and cannot be reversed. Check the address before signing in MiniPay.", "Las transferencias se realizan en Celo y no se pueden revertir. Verifica la dirección antes de firmar en MiniPay.", "As transferências acontecem na Celo e não podem ser revertidas. Verifique o endereço antes de assinar no MiniPay.")}
+          {tr("USDT is sent on Celo from your connected MiniPay wallet. Transfers cannot be reversed.", "El USDT se envía por Celo desde tu wallet conectada de MiniPay. Las transferencias no se pueden revertir.", "O USDT é enviado pela Celo a partir da sua carteira MiniPay conectada. As transferências não podem ser revertidas.")}
         </p>
 
-        {stage === "edit" && (
+        {isMiniPay === false && (
+          <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-4 text-sm">
+            <p className="font-medium">{tr("Open Anna in MiniPay", "Abre Anna en MiniPay", "Abra a Anna no MiniPay")}</p>
+            <p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">
+              {tr("For your security, this USDT transfer uses only the wallet connected by MiniPay.", "Por tu seguridad, esta transferencia de USDT usa únicamente la wallet conectada por MiniPay.", "Para sua segurança, esta transferência de USDT usa somente a carteira conectada pelo MiniPay.")}
+            </p>
+          </div>
+        )}
+
+        {isMiniPay === true && stage === "edit" && (
           <div className="mt-4 flex flex-col gap-3">
-            <label className="flex flex-col gap-1 text-sm">
-              <span>{tr("Token", "Token", "Token")}</span>
-              <select
-                aria-label={tr("Token to send", "Token a enviar", "Token para enviar")}
-                value={symbol}
-                onChange={(event) => {
-                  setSymbol(event.target.value as StableSymbol);
-                  setError(null);
-                }}
-                className="h-12 rounded-xl border border-white/15 bg-black/25 px-3"
-              >
-                <option value="USDT">USDT</option>
-                <option value="cUSD">cUSD</option>
-                <option value="USDC">USDC</option>
-              </select>
-            </label>
+            <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm">
+              <span className="text-[var(--muted)]">{tr("Token and network", "Token y red", "Token e rede")}</span>
+              <span className="ml-2 font-semibold">USDT · Celo</span>
+            </div>
             <label className="flex flex-col gap-1 text-sm">
               <span>{tr("External wallet", "Wallet externa", "Carteira externa")}</span>
               <input
@@ -225,7 +217,7 @@ export function UserProfile({
                 className="h-12 rounded-xl border border-white/15 bg-black/25 px-3 text-base"
               />
               <span className="text-xs text-[var(--muted)]">
-                {tr("Available", "Disponible", "Disponível")}: {balance.display} {symbol}
+                {tr("Available", "Disponible", "Disponível")}: {balance.display} USDT
               </span>
             </label>
             <button
@@ -239,12 +231,12 @@ export function UserProfile({
           </div>
         )}
 
-        {(stage === "review" || stage === "sending") && (
+        {isMiniPay === true && (stage === "review" || stage === "sending") && (
           <div className="mt-4 rounded-xl border border-amber-300/25 bg-amber-300/5 p-4">
             <p className="text-sm font-semibold">{tr("Confirm the details", "Confirma los datos", "Confirme os dados")}</p>
             <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-sm">
               <dt className="text-[var(--muted)]">{tr("Network", "Red", "Rede")}</dt><dd className="text-right">Celo</dd>
-              <dt className="text-[var(--muted)]">{tr("You send", "Envías", "Você envia")}</dt><dd className="text-right font-semibold">{amount} {symbol}</dd>
+              <dt className="text-[var(--muted)]">{tr("You send", "Envías", "Você envia")}</dt><dd className="text-right font-semibold">{amount} USDT</dd>
               <dt className="text-[var(--muted)]">{tr("To", "A", "Para")}</dt><dd className="break-all text-right font-mono text-xs">{recipient}</dd>
             </dl>
             <p className="mt-3 text-xs text-amber-100/80">
