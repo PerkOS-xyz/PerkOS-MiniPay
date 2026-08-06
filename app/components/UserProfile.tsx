@@ -71,8 +71,8 @@ export function UserProfile({
       </div>
 
       <button type="button" onClick={onOpenTransfer} className="rounded-2xl bg-[var(--accent)] px-4 py-4 text-left text-white">
-        <span className="block font-semibold">{tr("Send USDT", "Enviar USDT", "Enviar USDT")}</span>
-        <span className="mt-1 block text-xs text-white/75">{tr("Transfer from MiniPay to an external wallet", "Transfiere desde MiniPay a una wallet externa", "Transfira do MiniPay para uma carteira externa")}</span>
+        <span className="block font-semibold">{tr("Send tokens", "Enviar tokens", "Enviar tokens")}</span>
+        <span className="mt-1 block text-xs text-white/75">{tr("Choose a MiniPay token and transfer it to an external wallet", "Elige un token de MiniPay y transfiérelo a una wallet externa", "Escolha um token do MiniPay e transfira para uma carteira externa")}</span>
       </button>
 
       <button type="button" onClick={onOpenBusinessWallet} className="rounded-xl border border-white/15 px-4 py-3 text-left text-sm">
