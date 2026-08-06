@@ -7,7 +7,7 @@ import { QuickActions } from "./QuickActions";
 import { useLanguage } from "../lib/i18n";
 
 /** First-run entry: recognizable jobs, not templates, agents, or workflows. */
-export function NeedToday({ onExplore }: { onExplore: () => void }) {
+export function NeedToday({ onExplore, onProfile }: { onExplore: () => void; onProfile: () => void }) {
   const { locale } = useLanguage();
   const copy = locale === "es"
     ? {
@@ -15,6 +15,7 @@ export function NeedToday({ onExplore }: { onExplore: () => void }) {
         subtitle: "Te ayudo a escribir, responder y organizar lo de cada día. No necesitas saber usar IA.",
         profiles: "Ayuda para mi trabajo",
         profilesSub: "Configura Anna para una tienda, restaurante, secretaría o negocio de servicios.",
+        profile: "Perfil",
       }
     : locale === "pt"
       ? {
@@ -22,19 +23,30 @@ export function NeedToday({ onExplore }: { onExplore: () => void }) {
           subtitle: "Ajudo você a escrever, responder e organizar as tarefas do dia. Você não precisa saber usar IA.",
           profiles: "Ajuda para o meu trabalho",
           profilesSub: "Configure Anna para uma loja, restaurante, secretaria ou negócio de serviços.",
+          profile: "Perfil",
         }
       : {
           title: "Hi, I'm Anna",
           subtitle: "I help you write, reply, and organize everyday work. You don't need to know how to use AI.",
           profiles: "Help for my kind of work",
           profilesSub: "Set up Anna for a shop, restaurant, office, or service business.",
+          profile: "Profile",
         };
 
   return (
     <main className="flex min-h-[100dvh] flex-col gap-5 px-5 py-7">
       <header className="flex items-center justify-between">
         <Brand />
-        <LanguageSelect compact />
+        <div className="flex items-center gap-3">
+          <LanguageSelect compact />
+          <button
+            type="button"
+            onClick={onProfile}
+            className="text-xs text-[var(--muted)] underline-offset-2 hover:underline"
+          >
+            {copy.profile}
+          </button>
+        </div>
       </header>
 
       <div className="flex items-center gap-4 rounded-3xl border border-white/10 bg-white/5 p-4">
