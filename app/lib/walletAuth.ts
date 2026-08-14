@@ -1,5 +1,6 @@
 import { signInWithCustomToken, type User } from "firebase/auth";
 import { firebaseAuth } from "./firebase";
+import { recordActivity } from "./activityTelemetry";
 
 // SIWE-style sign-in against our own /api/auth routes → Firebase custom token.
 // MiniPay signs the message with personal_sign; the server verifies (EOA or ERC-1271 on Celo)
@@ -32,5 +33,6 @@ export async function signInWithWallet(input: {
   const { token } = (await exchangeRes.json()) as { token: string };
 
   const credential = await signInWithCustomToken(firebaseAuth(), token);
+  void recordActivity(credential.user, "login", address);
   return credential.user;
 }
