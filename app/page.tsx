@@ -14,6 +14,8 @@ import { AccessGate } from "./components/AccessGate";
 import { MiniPayLanding } from "./components/landing/MiniPayLanding";
 import { LanguageSelect } from "./components/LanguageSelect";
 import { translated, useLanguage } from "./lib/i18n";
+import { firebaseAuth } from "./lib/firebase";
+import { recordActivity } from "./lib/activityTelemetry";
 
 // Lazy — pulls @dynamic-labs only in the browser host (the chunk is shared
 // with DynamicProviders, which is mounted under the same condition).
@@ -37,6 +39,12 @@ export default function Page() {
   // "Click the logo → go to the landing" — works from any state (signed-in,
   // inside MiniPay, or signed-out) by forcing the landing view here.
   const [forceLanding, setForceLanding] = useState(false);
+
+  useEffect(() => {
+    if (status !== "signed-in" || !address) return;
+    const user = firebaseAuth().currentUser;
+    if (user) void recordActivity(user, "session_start", address);
+  }, [address, status]);
   const nav = useMemo(
     () => ({ goToLanding: () => setForceLanding(true), goToApp: () => setForceLanding(false) }),
     [],
