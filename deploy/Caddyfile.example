@@ -1,5 +1,5 @@
 # Add these blocks to the Caddyfile in perkos-knowledge-proxy on the VPS, then reload Caddy.
-# DNS anna.perkos.xyz → 62.238.28.49 must resolve first so Caddy can issue the TLS cert.
+# DNS anna.perkos.xyz → the app VPS must resolve first so Caddy can issue the TLS cert.
 
 anna.perkos.xyz {
   encode gzip zstd
